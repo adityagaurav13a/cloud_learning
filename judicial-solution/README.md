@@ -16,7 +16,6 @@ Judicial-solution/
 │── Dockerfile
 
 
-
 ---
 
 ## 🐳 Dockerfile
@@ -36,8 +35,6 @@ EXPOSE 80
 
 # This is the default command that runs when the container starts.it tells Nginx to run in the foreground
 CMD ["nginx", "-g", "daemon off;"]
-
-
 
 
 
