@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JudicialSolutions.in</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="overlay"></div>
+    <div class="hero-content">
+      <h1>Judicial Solutions</h1>
+      <p>Trusted Legal Guidance and Advocacy</p>
+      <a href="#contact" class="btn">Book a Consultation</a>
+    </div>
+  </header>
+
+  <!-- Services -->
+  <section id="services" class="services">
+    <h2>Our Services</h2>
+    <div class="service-grid">
+      <div class="service">Civil Cases</div>
+      <div class="service">Criminal Defense</div>
+      <div class="service">Family Disputes</div>
+      <div class="service">Corporate Law</div>
+      <div class="service">Legal Documentation</div>
+    </div>
+  </section>
+
+  <!-- Contact Form -->
+  <section id="contact" class="contact">
+    <h2>Contact Us</h2>
+    <form id="contactForm">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Your Name" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="example@gmail.com" required>
+
+      <label for="phone">Phone Number</label>
+      <div class="phone-container">
+        <select id="countryCode" name="countryCode" required>
+          <option value="+91">+91 (India)</option>
+          <option value="+1">+1 (USA)</option>
+          <option value="+44">+44 (UK)</option>
+        </select>
+        <input type="tel" id="phone" name="phone" placeholder="1234567890" required>
+      </div>
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" rows="4" placeholder="Your Message" required></textarea>
+
+      <button type="submit" class="btn">Submit</button>
+    </form>
+    <div id="formMessage"></div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2025 JudicialSolutions.in | Designed for legal excellence</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
