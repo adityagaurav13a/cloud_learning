@@ -1,67 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JudicialSolutions.in</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JudicialSolutions.in</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <!-- Hero Section -->
-  <header class="hero">
-    <div class="overlay"></div>
-    <div class="hero-content">
-      <h1>Judicial Solutions</h1>
-      <p>Trusted Legal Guidance and Advocacy</p>
-      <a href="#contact" class="btn">Book a Consultation</a>
-    </div>
-  </header>
 
-  <!-- Services -->
-  <section id="services" class="services">
-    <h2>Our Services</h2>
-    <div class="service-grid">
-      <div class="service">Civil Cases</div>
-      <div class="service">Criminal Defense</div>
-      <div class="service">Family Disputes</div>
-      <div class="service">Corporate Law</div>
-      <div class="service">Legal Documentation</div>
-    </div>
-  </section>
+    <!-- Header -->
+<header class="site-header">
+  <div class="logo">⚖️ Judicial Solutions</div>
+  <nav class="navbar" id="navbar">
+     <ul>
+        <li><a href="#about">About</a></li>
+            <li>|</li>
+            <li><a href="#services">Services</a></li>
+            <li>|</li>
+            <li><a href="#contact">Contact</a></li>
+            <li>|</li>
+            <li><a href="#Team">Team</a></li>
+            <li>|</li>
+            <li><a href="/admin-login" class="login-link">Admin Login</a></li>
+        </ul>
+  </nav>
+  <!-- Hamburger button -->
+  <button class="hamburger" id="hamburger">☰</button>
+</header>
 
-  <!-- Contact Form -->
-  <section id="contact" class="contact">
-    <h2>Contact Us</h2>
-    <form id="contactForm">
-      <label for="name">Full Name</label>
-      <input type="text" id="name" name="name" placeholder="Your Name" required>
 
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" placeholder="example@gmail.com" required>
 
-      <label for="phone">Phone Number</label>
-      <div class="phone-container">
-        <select id="countryCode" name="countryCode" required>
-          <option value="+91">+91 (India)</option>
-          <option value="+1">+1 (USA)</option>
-          <option value="+44">+44 (UK)</option>
-        </select>
-        <input type="tel" id="phone" name="phone" placeholder="1234567890" required>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="overlay"></div>
+        <div class="hero-content">
+            <h1>Judicial Solutions</h1>
+            <p>Trusted Legal Guidance and Advocacy</p>
+            <!-- <a href="#contact" class="btn">Book a Consultation</a> -->
+            <a href="tel:+919415919351" class="btn">📞 Book a Consultation</a>
+
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <!-- <section id="services" class="services-section">
+  <div class="container text-center">
+    <h2 class="section-title">Our Services</h2>
+    <div class="services-grid">
+
+      <a href="civil-cases.html" class="service-card">
+        <div class="icon">⚖️</div>
+        <h3>Civil Cases</h3>
+        <p>Expert legal guidance for property, contracts, and civil disputes.</p>
+      </a>
+
+      <div class="service-card">
+        <div class="icon">🛡️</div>
+        <h3>Criminal Defense</h3>
+        <p>Strong representation for criminal cases ensuring fair justice.</p>
       </div>
 
-      <label for="message">Message</label>
-      <textarea id="message" name="message" rows="4" placeholder="Your Message" required></textarea>
+      <div class="service-card">
+        <div class="icon">👨‍👩‍👧</div>
+        <h3>Family Disputes</h3>
+        <p>Resolving family conflicts with compassion and legal clarity.</p>
+      </div>
 
-      <button type="submit" class="btn">Submit</button>
-    </form>
-    <div id="formMessage"></div>
-  </section>
+      <div class="service-card">
+        <div class="icon">🏢</div>
+        <h3>Corporate Law</h3>
+        <p>Trusted advice for businesses, compliance, and legal contracts.</p>
+      </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <p>&copy; 2025 JudicialSolutions.in | Designed for legal excellence</p>
-  </footer>
+      <div class="service-card">
+        <div class="icon">📑</div>
+        <h3>Legal Documentation</h3>
+        <p>Accurate and secure documentation services for all legal needs.</p>
+      </div>
 
-  <script src="script.js"></script>
+    </div>
+  </div>
+</section> -->
+    <section id="services" class="services-section">
+        <div class="container text-center">
+            <h2 class="section-title">Our Services</h2>
+            <div class="services-grid">
+
+                <a href="civil-cases.html" class="service-card">
+                    <div class="icon">⚖️</div>
+                    <h3>Civil Cases</h3>
+                    <p>Expert legal guidance for property, contracts, and civil disputes.</p>
+                </a>
+
+                <!-- Updated Criminal Defense Card -->
+                <a href="criminal-defense.html" class="service-card">
+                    <div class="icon">🛡️</div>
+                    <h3>Criminal Defense</h3>
+                    <p>Strong representation for criminal cases ensuring fair justice.</p>
+                </a>
+
+                <div class="service-card">
+                    <div class="icon">👨‍👩‍👧</div>
+                    <h3>Family Disputes</h3>
+                    <p>Resolving family conflicts with compassion and legal clarity.</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="icon">🏢</div>
+                    <h3>Corporate Law</h3>
+                    <p>Trusted advice for businesses, compliance, and legal contracts.</p>
+                </div>
+
+                <div class="service-card">
+                    <div class="icon">📑</div>
+                    <h3>Legal Documentation</h3>
+                    <p>Accurate and secure documentation services for all legal needs.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Form -->
+    <section class="contact-section">
+        <h2 class="contact-title">Contact Us</h2>
+        <div class="contact-card">
+            <form id="contactForm">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="Your Name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="example@gmail.com" required>
+                </div>
+
+                <div class="form-group phone-group">
+                    <label for="phone">Phone Number</label>
+                    <div class="phone-flex">
+                        <select id="country-code" name="country-code">
+                            <option value="+91">+91 (India)</option>
+                            <option value="+1">+1 (USA)</option>
+                            <option value="+44">+44 (UK)</option>
+                        </select>
+                        <input type="tel" id="phone" name="phone" placeholder="1234567890" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" placeholder="Your Message" rows="4" required></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Submit</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container text-center">
+            <h2 class="section-title">About Judicial Solutions</h2>
+            <p>
+                At Judicial Solutions, we are committed to delivering trusted legal guidance
+                and advocacy across Civil, Criminal, Family, and Corporate law. Our experienced
+                team of advocates ensures fair representation, integrity, and a transparent process
+                for every client. Whether you need expert advice, documentation support, or court representation,
+                we provide solutions tailored to your needs.
+            </p>
+            <p>
+                Our mission is to uphold justice, protect rights, and simplify legal processes
+                so that every individual and organization feels supported in their legal journey.
+            </p>
+        </div>
+    </section>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 JudicialSolutions.in | Designed for legal excellence</p>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
+
 </html>
