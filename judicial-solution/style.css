@@ -1,32 +1,133 @@
-/* General */
+General
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   line-height: 1.6;
 }
 
+/* Header styles */
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: #222;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+
+.navbar ul {
+  list-style: none;
+  display: flex;
+  gap: 15px;
+}
+
+.navbar ul li a {
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+}
+
+/* Default */
+.navbar {
+  display: flex;
+  gap: 15px;
+}
+
+.hamburger {
+  display: none;
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+/* Responsive navbar */
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  font-size: 2rem;   /* Bigger logo */
+  color: #003366;
+}
+
+.logo-text {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #003366;
+  letter-spacing: 0.5px;
+}
+
+
+/* Admin Login */
+.login-link {
+  font-weight: bold;
+  color: #d9534f;
+  padding: 6px 12px;
+  border: 1px solid #d9534f;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.login-link:hover {
+  background: linear-gradient(135deg, #667eea, #764ba2); /* purple/blue gradient */
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+}
+
 /* Hero Section */
 .hero {
   position: relative;
-  background: url('https://images.unsplash.com/photo-1588776814546-2e7f3f4e07c1') no-repeat center center/cover;
-  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center;      /* vertical center */
+  justify-content: center;  /* horizontal center */
+  min-height: 100vh;        /* full viewport height */
   text-align: center;
+
+  /* background: 
+    linear-gradient(rgba(0, 0, 255, 0.3), rgba(0, 0, 255, 0.3)),
+    url('still-life-with-scales-justice.jpg');
+  background-size: cover; */
+  background: url('drawings-about-legal-profession.jpg') no-repeat center center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
+  padding: 0 20px;          /* spacing for small screens */
 }
 
 .hero .overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 50, 150, 0.5); /* blue effect */
+  z-index: 0; /* sits behind content */
 }
 
 .hero-content {
   position: relative;
-  z-index: 1;
+  z-index: 1; /* ensures text shows above overlay */
 }
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  margin-top: 15px;
+}
+
 
 .btn {
   display: inline-block;
@@ -62,35 +163,115 @@ body {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-
-/* Contact */
-.contact {
-  padding: 50px;
-}
-
-.contact form {
-  max-width: 500px;
-  margin: auto;
+/* Contact Section */
+.contact-section {
+  background: linear-gradient(135deg, #f0f4f9, #e6ecf5);
+  padding: 60px 20px;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
-.contact input, .contact select, .contact textarea, .contact button {
-  margin-bottom: 15px;
-  padding: 10px;
+.contact-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #222;
+}
+
+.contact-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
   font-size: 1rem;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
-.phone-container {
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 8px rgba(0, 86, 179, 0.3);
+  outline: none;
+}
+
+.phone-flex {
   display: flex;
   gap: 10px;
 }
 
-#formMessage {
-  margin-top: 10px;
-  font-weight: bold;
-  color: red;
+.phone-flex select {
+  flex: 1;
 }
+
+.phone-flex input {
+  flex: 2;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  background: #0056b3;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-submit:hover {
+  background: #003d80;
+}
+
+/* About Section */
+.about-section {
+  padding: 60px 20px;
+  background: #eef2f7;
+  text-align: center;
+}
+
+.about-section .section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #1d3557;
+}
+
+.about-section p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #444;
+  max-width: 800px;
+  margin: 0 auto 15px;
+}
+
 
 /* Footer */
 .footer {
@@ -98,4 +279,252 @@ body {
   color: white;
   text-align: center;
   padding: 20px;
+}
+
+.services-section {
+  padding: 60px 20px;
+  background: #f8f9fa;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #1d3557;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+}
+
+.service-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px 20px;
+  box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  text-align: center;
+  text-decoration: none;
+  color: #333;
+}
+
+.service-card .icon {
+  font-size: 2.2rem;
+  margin-bottom: 15px;
+}
+
+.service-card h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.service-card p {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #0077b6, #0096c7);
+  color: white;
+}
+
+.service-card:hover h3,
+.service-card:hover p,
+.service-card:hover .icon {
+  color: white;
+}
+
+
+/* Hero for Civil Cases */
+.civil-hero {
+  background: linear-gradient(rgba(0, 40, 90, 0.5), rgba(0, 40, 90, 0.5)), 
+              url('still-life-with-scales-justice.jpg');
+  background-size: cover;
+  background-position: center;
+  height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 700px;
+}
+
+/* Sections */
+.overview, .categories, .why-choose, .contact {
+  padding: 60px 20px;
+  max-width: 1100px;
+  margin: auto;
+  text-align: center;
+}
+
+.overview p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #444;
+}
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.card {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Why Choose */
+.why-choose ul {
+  list-style: none;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 2;
+}
+
+/* Contact */
+.contact form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.contact input, .contact textarea, .contact select {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.phone-group {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb, #1e3a8a);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Footer */
+.footer {
+  background: #1e3a8a;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin-top: 40px;
+}
+
+.services-grid {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.service-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  min-width: 200px;
+  text-align: center;
+  text-decoration: none;
+  color: black;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
+  background: linear-gradient(135deg, #0077b6, #90e0ef);
+  color: white;
+}
+
+/* Desktop */
+.navbar {
+  display: flex;
+  gap: 15px;
+}
+
+.hamburger {
+  display: none;
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white; /* adjust to header color */
+}
+
+
+
+/* Hero Section for Criminal Defense */
+.criminal-hero {
+  background: linear-gradient(rgba(0, 50, 120, 0.5), rgba(0, 50, 120, 0.5)),
+              url('criminal-law.jpg'); /* Replace with your preferred image */
+  background-size: cover;
+  background-position: center;
+  min-height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  padding: 0 20px;
+}
+
+.criminal-hero .glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 700px;
+}
+
+.criminal-hero h1 {
+  font-size: 2.8rem;
+  margin-bottom: 15px;
+}
+
+.criminal-hero p {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
 }
