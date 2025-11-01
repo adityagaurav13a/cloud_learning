@@ -1,0 +1,80 @@
+Step 1 : Initiate a local kubernete environment - minikube
+
+#What is minikube 
+Minikube is a local Kubernetes environment that lets you run and test Kubernetes clusters right on your machine.
+
+
+#Why Minikube Is Useful ?
+Local Kubernetes Playground  that allows you to run single-node Kubernetes cluster on your laptop locally, with using any external tool.
+Real Kubernetes Experience You get kubectl commands and YAML configurations you'd use in production. It is great for practicing pod/service readiness
+
+#what if we don't run minikube ?
+If you don’t run Minikube or any other Kubernetes cluster, then kubectl has nowhere to send your commands.
+Example : drive a car without an engine.
+
+
+
+#Practical
+
+- Here we are trying to run our first pod without activating the kubernetes environment i.e, MiniKube
+
+
+/mnt/d/PROJECT/kubernetes_learning$ kubectl run nginx --image=nginx
+E1031 20:29:12.042702    8184 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: Get \"http://localhost:8080/api?timeout=32s\": dial tcp 127.0.0.1:8080: connect: connection refused"
+The connection to the server localhost:8080 was refused -  did you specify the right host or port?
+
+Now lets start minikube and the run our first POD.
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ start minikube
+Command 'start' not found, did you mean:
+  command 'stars' from snap stars (2.7jrc3)
+  command 'stat' from deb coreutils (9.4-3ubuntu6.1)
+  command 'startx' from deb xinit (1.4.1-0ubuntu4)
+  command 'kstart' from deb kde-cli-tools (4:5.27.12-0ubuntu0.1)
+  command 'rstart' from deb x11-session-utils (7.7+6)
+See 'snap info <snapname>' for additional versions.
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ minikube start
+😄  minikube v1.37.0 on Ubuntu 24.04 (kvm/amd64)
+✨  Automatically selected the docker driver
+
+🧯  The requested memory allocation of 2876MiB does not leave room for system overhead (total system memory: 2876MiB). You may face stability issues.
+💡  Suggestion: Start minikube with less memory allocated: 'minikube start --memory=2876mb'
+
+📌  Using Docker driver with root privileges
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🚜  Pulling base image v0.0.48 ...
+🔥  Creating docker container (CPUs=2, Memory=2876MB) ...
+🐳  Preparing Kubernetes v1.34.0 on Docker 28.4.0 ...
+🔗  Configuring bridge CNI (Container Networking Interface) ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
+
+
+
+Creating our first POD.
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ kubectl run nginx --image=nginx
+pod/nginx created
+
+
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ kubectl get pods          #this command is to monitor our pods
+NAME    READY   STATUS    RESTARTS   AGE
+nginx   1/1     Running   0          60s
+
+
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ kubectl get pods -o wide            #to get extra details of the pods
+NAME    READY   STATUS    RESTARTS   AGE    IP           NODE       NOMINATED NODE   READINESS GATES
+nginx   1/1     Running   0          2m2s   10.244.0.3   minikube   <none>           <none>
+
+
+We can we the command :  "kubectl describe pod" to get the complete details about the our pods
+
+#clean-up
+
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ kubectl delete pod nginx
+pod "nginx" deleted from default namespace
+
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/kubernetes_learning$ kubectl delete pod nginx
+pod "nginx" deleted from default namespace
+
+
