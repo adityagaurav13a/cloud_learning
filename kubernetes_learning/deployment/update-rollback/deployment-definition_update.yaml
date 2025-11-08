@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+  labels:
+    app: myapp
+    type: frontend
+spec:
+  template:
+    metadata:
+      name: myapp-pod
+      labels:
+        app: myapp
+        tier: frontend
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:1.29.3
+  selector: 
+    matchLabels:
+      app: myapp
+      tier: frontend
+  replicas: 3
