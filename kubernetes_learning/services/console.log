@@ -1,0 +1,77 @@
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ kubectl create -f service-definition.yaml
+The Service "myapp-service" is invalid: spec.type: Unsupported value: "nodePort": supported values: "ClusterIP", "ExternalName", "LoadBalancer", "NodePort"
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ kubectl create -f service-definition.yaml
+service/myapp-service created
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ kubectl get service
+NAME            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+kubernetes      ClusterIP   10.96.0.1       <none>        443/TCP        10d
+myapp-service   NodePort    10.101.154.93   <none>        80:30007/TCP   13s
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ minikube service myapp-service  -url
+Error: unknown shorthand flag: 'u' in -url
+See 'minikube service --help' for usage.
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ minikube service myapp-service  --url
+http://127.0.0.1:40029
+❗  Because you are using a Docker driver on linux, the terminal needs to be open to run it.
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+myapp-deployment-5459867779-4l2nx   1/1     Running   0          7m14s
+myapp-deployment-5459867779-5wn7n   1/1     Running   0          7m14s
+myapp-deployment-5459867779-96ztf   1/1     Running   0          7m14s
+myapp-deployment-5459867779-cgqjd   1/1     Running   0          7m14s
+myapp-deployment-5459867779-xw2zp   1/1     Running   0          7m14s
+myapp-deployment-5459867779-xzqw9   1/1     Running   0          7m14s
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ kubectl get deployment
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+myapp-deployment   6/6     6            6           7m22s
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$ kubectl describe deployment myapp-deployment
+Name:                   myapp-deployment
+Namespace:              default
+CreationTimestamp:      Tue, 11 Nov 2025 18:12:37 +0000
+Labels:                 app=myapp
+Annotations:            deployment.kubernetes.io/revision: 1
+Selector:               app=myapp
+Replicas:               6 desired | 6 updated | 6 total | 6 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=myapp
+           tier=frontend
+  Containers:
+   nginx:
+    Image:         nginx
+    Port:          <none>
+    Host Port:     <none>
+    Environment:   <none>
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   myapp-deployment-5459867779 (6/6 replicas created)
+Events:
+  Type    Reason             Age    From                   Message
+  ----    ------             ----   ----                   -------
+  Normal  ScalingReplicaSet  7m49s  deployment-controller  Scaled up replica set myapp-deployment-5459867779 from 0 to 6
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/services$
