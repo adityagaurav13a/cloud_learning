@@ -1,0 +1,48 @@
+ kubectl get all
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/db-deployment-7f44c97c96-5ncn2       1/1     Running   0          55s
+pod/redis-deployment-66c8c6968-4gzpc     1/1     Running   0          54s
+pod/redis-deployment-66c8c6968-tx8zf     1/1     Running   0          54s
+pod/redis-deployment-66c8c6968-zwddr     1/1     Running   0          54s
+pod/result-deployment-7dd7565879-44hhc   1/1     Running   0          54s
+pod/result-deployment-7dd7565879-5646r   1/1     Running   0          54s
+pod/result-deployment-7dd7565879-qdh7r   1/1     Running   0          54s
+pod/vote-deployment-b97d94968-hhgpm      1/1     Running   0          54s
+pod/worker-deployment-7d8d9d66dc-cm7ts   1/1     Running   0          54s
+pod/worker-deployment-7d8d9d66dc-mthft   1/1     Running   0          54s
+pod/worker-deployment-7d8d9d66dc-pdzj6   1/1     Running   0          54s
+
+NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/back-end         ClusterIP   10.98.138.74    <none>        80/TCP           3d1h
+service/db-service       ClusterIP   10.109.89.49    <none>        5432/TCP         55s
+service/kubernetes       ClusterIP   10.96.0.1       <none>        443/TCP          13d
+service/myapp-service    NodePort    10.101.154.93   <none>        80:30007/TCP     3d1h
+service/redis-service    ClusterIP   10.96.109.20    <none>        6379/TCP         54s
+service/result-service   NodePort    10.105.20.36    <none>        8081:31001/TCP   54s
+service/vote-service     NodePort    10.111.169.96   <none>        8080:31000/TCP   54s
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/db-deployment       1/1     1            1           55s
+deployment.apps/redis-deployment    3/3     3            3           55s
+deployment.apps/result-deployment   3/3     3            3           54s
+deployment.apps/vote-deployment     1/1     1            1           54s
+deployment.apps/worker-deployment   3/3     3            3           54s
+
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/db-deployment-7f44c97c96       1         1         1       55s
+replicaset.apps/redis-deployment-66c8c6968     3         3         3       54s
+replicaset.apps/result-deployment-7dd7565879   3         3         3       54s
+replicaset.apps/vote-deployment-b97d94968      1         1         1       54s
+replicaset.apps/worker-deployment-7d8d9d66dc   3         3         3       54s
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$ kubectl get node -o wide
+NAME       STATUS   ROLES    AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION                     CONTAINER-RUNTIME
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$ kubectl get node -o wide
+NAME       STATUS   ROLES    AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION                     CONTAINER-RUNTIME
+minikube   Ready    <none>   13d   v1.34.0   192.168.49.2   <none>        Ubuntu 22.04.5 LTS   6.6.87.2-microsoft-standard-WSL2   docker://28.4.0
+aditygau@DESKTOP-5RVD1VH:/mnt/d/PROJECT/cloud_learning/kubernetes_learning/voting_application/deployment$
