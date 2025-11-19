@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "tiinyflix-project"
+        },
+        "object": {
+          "key": "sample.txt"
+        }
+      }
+    }
+  ]
+}
