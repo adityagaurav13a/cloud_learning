@@ -1,0 +1,10 @@
+[pytest]
+minversion = 6.0
+testpaths =
+    practice.py
+markers =
+    skip: always skip tests
+    skipif: conditionally skip tests
+    xfail: expected failure tests
+log_cli = true
+log_cli_level = INFO
