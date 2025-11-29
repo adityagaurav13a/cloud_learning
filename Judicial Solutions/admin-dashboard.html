@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin Dashboard | Judicial Solutions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+
+    <!-- Custom Admin CSS -->
+    <link rel="stylesheet" href="./CSS/admin-dashboard.css" />
+</head>
+
+<body>
+    <!-- Wrapper -->
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="bg-dark text-white">
+            <div class="sidebar-header d-flex align-items-center px-3 py-3">
+                <span class="logo-icon me-2">⚖️</span>
+                <div class="logo-text">
+                    <div class="fw-bold">Judicial Solutions</div>
+                    <small class="text-muted">Admin Panel</small>
+                </div>
+            </div>
+
+            <hr class="text-secondary my-0" />
+
+            <ul class="nav flex-column mt-2 sidebar-menu">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" data-section="dashboard-section">
+                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    </a>
+                </li>
+
+                <li class="nav-item mt-2">
+                    <div class="text-uppercase text-secondary small px-3">
+                        Operations
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="leads-section">
+                        <i class="bi bi-inbox me-2"></i>Leads (Contact)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="appointments-section">
+                        <i class="bi bi-calendar-check me-2"></i>Appointments
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="services-section">
+                        <i class="bi bi-card-checklist me-2"></i>Services Manager
+                    </a>
+                </li>
+
+                <li class="nav-item mt-2">
+                    <div class="text-uppercase text-secondary small px-3">
+                        Legal Research
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="case-research-section">
+                        <i class="bi bi-search me-2"></i>Case Research (API)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="saved-cases-section">
+                        <i class="bi bi-bookmarks me-2"></i>Saved Cases
+                    </a>
+                </li>
+
+                <li class="nav-item mt-2">
+                    <div class="text-uppercase text-secondary small px-3">
+                        Content & Users
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="files-section">
+                        <i class="bi bi-folder2-open me-2"></i>Files & Templates
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="blog-section">
+                        <i class="bi bi-journal-text me-2"></i>Blog / Articles
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="users-section">
+                        <i class="bi bi-people me-2"></i>Users & Roles
+                    </a>
+                </li>
+
+                <li class="nav-item mt-2">
+                    <div class="text-uppercase text-secondary small px-3">
+                        System
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-section="settings-section">
+                        <i class="bi bi-gear me-2"></i>Settings
+                    </a>
+                </li>
+                <li class="nav-item mt-auto mb-3">
+                    <a class="nav-link text-danger" href="admin-login.html">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm">
+                <div class="container-fluid">
+                    <button class="btn btn-outline-primary d-lg-none me-2" id="menu-toggle">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <span class="navbar-brand fw-semibold">
+                        Admin Dashboard
+                    </span>
+
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="topNav">
+                        <form class="d-flex ms-auto me-3">
+                            <input class="form-control form-control-sm" type="search"
+                                placeholder="Search leads, cases..." />
+                        </form>
+
+                        <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
+                            <li class="nav-item me-3">
+                                <span class="badge rounded-pill bg-light text-muted">
+                                    <i class="bi bi-circle-fill text-success me-1 small"></i>
+                                    Online
+                                </span>
+                            </li>
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
+                                    role="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">AG</div>
+                                    <span class="small">
+                                        <div class="fw-semibold">Admin</div>
+                                        <div class="text-muted">Super Admin</div>
+                                    </span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#">Profile</a></li>
+                                    <li><a class="dropdown-item" href="#" data-section="settings-section">Settings</a>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                    <li><a class="dropdown-item text-danger" href="admin-login.html">Logout</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="container-fluid py-4">
+
+                <!-- ============ Dashboard Section ============ -->
+                <section id="dashboard-section" class="admin-section">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="mb-1">Welcome back 👋</h4>
+                            <p class="text-muted mb-0">
+                                Overview of leads, appointments, and case research activity.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card shadow-sm border-0 stat-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="stat-label">New Leads (7 days)</div>
+                                        <div class="stat-value" id="stat-leads">24</div>
+                                    </div>
+                                    <div class="stat-icon bg-soft-primary">
+                                        <i class="bi bi-inbox"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card shadow-sm border-0 stat-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="stat-label">Appointments</div>
+                                        <div class="stat-value" id="stat-appointments">9</div>
+                                    </div>
+                                    <div class="stat-icon bg-soft-success">
+                                        <i class="bi bi-calendar-check"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card shadow-sm border-0 stat-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="stat-label">Saved Cases</div>
+                                        <div class="stat-value" id="stat-cases">18</div>
+                                    </div>
+                                    <div class="stat-icon bg-soft-warning">
+                                        <i class="bi bi-bookmarks"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="card shadow-sm border-0 stat-card">
+                                <div class="card-body d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="stat-label">Files Uploaded</div>
+                                        <div class="stat-value" id="stat-files">32</div>
+                                    </div>
+                                    <div class="stat-icon bg-soft-info">
+                                        <i class="bi bi-folder2-open"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-lg-8">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div
+                                    class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Leads & Appointments (Last 30 days)</h6>
+                                    <span class="text-muted small">Analytics</span>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="leadsAppointmentsChart" height="110"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div
+                                    class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Case Type Distribution</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="caseTypeChart" height="180"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tables Row -->
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="card shadow-sm border-0">
+                                <div
+                                    class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Recent Leads</h6>
+                                    <a href="#" class="small" data-section="leads-section">View all</a>
+                                </div>
+                                <div class="card-body table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Case Type</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-leads-body">
+                                            <!-- JS will populate -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card shadow-sm border-0">
+                                <div
+                                    class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Upcoming Appointments</h6>
+                                    <a href="#" class="small" data-section="appointments-section">View calendar</a>
+                                </div>
+                                <div class="card-body table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Client</th>
+                                                <th>Case Type</th>
+                                                <th>Date & Time</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="upcoming-appointments-body">
+                                            <!-- JS will populate -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Leads Section ============ -->
+                <section id="leads-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Leads / Contact Requests</h5>
+                            <p class="text-muted mb-0">Manage website contact form submissions.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm" id="refresh-leads">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control form-control-sm"
+                                        placeholder="Search by name / email" />
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm">
+                                        <option value="">All statuses</option>
+                                        <option>New</option>
+                                        <option>In progress</option>
+                                        <option>Closed</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm">
+                                        <option value="">All case types</option>
+                                        <option>Civil</option>
+                                        <option>Criminal</option>
+                                        <option>Family</option>
+                                        <option>Corporate</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Case Type</th>
+                                            <th>Received</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leads-table-body">
+                                        <!-- JS injects rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Appointments Section ============ -->
+                <section id="appointments-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Appointments</h5>
+                            <p class="text-muted mb-0">Consultation bookings and schedule.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="addAppointmentBtn" type="button"
+                            data-bs-toggle="modal" data-bs-target="#appointmentModal">
+                            <i class="bi bi-plus-lg me-1"></i>Add manual appointment
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Case Type</th>
+                                        <th>Date & Time</th>
+                                        <th>Mode</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appointments-table-body">
+                                    <!-- JS injects rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Appointment Modal -->
+                <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="appointmentModalLabel">Add Manual Appointment</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <form id="appointment-form">
+                                <div class="modal-body">
+                                    <div class="mb-2">
+                                        <label for="appointment-client" class="form-label small mb-1">Client
+                                            name</label>
+                                        <input type="text" class="form-control form-control-sm" id="appointment-client"
+                                            required>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="appointment-type" class="form-label small mb-1">Case type</label>
+                                        <input type="text" class="form-control form-control-sm" id="appointment-type"
+                                            placeholder="e.g. Civil, Criminal" required>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="appointment-datetime" class="form-label small mb-1">Date &amp;
+                                            time</label>
+                                        <input type="datetime-local" class="form-control form-control-sm"
+                                            id="appointment-datetime" required>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="appointment-mode" class="form-label small mb-1">Mode</label>
+                                        <select id="appointment-mode" class="form-select form-select-sm">
+                                            <option value="In person">In person</option>
+                                            <option value="Video">Video</option>
+                                            <option value="Phone">Phone</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="appointment-status" class="form-label small mb-1">Status</label>
+                                        <select id="appointment-status" class="form-select form-select-sm">
+                                            <option value="Pending">Pending</option>
+                                            <option value="Confirmed">Confirmed</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary btn-sm">Save appointment</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ============ Services Section ============ -->
+                <section id="services-section" class="admin-section d-none">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h5>Services Manager</h5>
+                            <p class="text-muted mb-0">Control which services appear on the public website.</p>
+                        </div>
+                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                            <button class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-lg me-1"></i>Add service
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Service</th>
+                                        <th>Category</th>
+                                        <th>Shown on Site</th>
+                                        <th>Last Updated</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="services-table-body">
+                                    <!-- JS injects rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Case Research Section ============ -->
+                <section id="case-research-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Case Research (External API)</h5>
+                            <p class="text-muted mb-0">
+                                Search past judgments and save relevant cases for future reference.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <form id="case-search-form" class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1">Keywords</label>
+                                    <input type="text" class="form-control form-control-sm" id="case-query"
+                                        placeholder="e.g. breach of contract, custody, cheque bounce" />
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">Year</label>
+                                    <input type="number" class="form-control form-control-sm" id="case-year"
+                                        placeholder="2020" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Court (optional)</label>
+                                    <input type="text" class="form-control form-control-sm" id="case-court"
+                                        placeholder="e.g. Supreme Court, Delhi HC" />
+                                </div>
+                                <div class="col-md-3 text-md-end">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-search me-1"></i>Search cases
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">Search Results</h6>
+                                <small class="text-muted" id="case-results-meta">No search performed yet</small>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Court</th>
+                                            <th>Date</th>
+                                            <th>Citation</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="case-results-body">
+                                        <!-- JS injects search results -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Saved Cases Section ============ -->
+                <section id="saved-cases-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Saved Cases</h5>
+                            <p class="text-muted mb-0">
+                                Cases bookmarked from research for ongoing or future matters.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Court</th>
+                                        <th>Date</th>
+                                        <th>Tags</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="saved-cases-body">
+                                    <!-- JS injects -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Files Section ============ -->
+                <section id="files-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Files & Templates</h5>
+                            <p class="text-muted mb-0">Manage drafts, templates, and case documents.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-upload me-1"></i>Upload file
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>File Name</th>
+                                        <th>Category</th>
+                                        <th>Size</th>
+                                        <th>Uploaded</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="files-table-body">
+                                    <!-- JS injects -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Blog Section ============ -->
+                <section id="blog-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Blog / Articles</h5>
+                            <p class="text-muted mb-0">Publish insights, case notes, and updates.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i>New article
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Published</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="blog-table-body">
+                                    <!-- JS injects -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Users Section ============ -->
+                <section id="users-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Users & Roles</h5>
+                            <p class="text-muted mb-0">Manage admin users and permissions.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-plus me-1"></i>Add user
+                        </button>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Last Login</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- JS injects -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============ Settings Section ============ -->
+                <section id="settings-section" class="admin-section d-none">
+                    <h5 class="mb-3">Settings</h5>
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="card border-0 shadow-sm mb-3">
+                                <div class="card-header bg-white border-0">
+                                    <h6 class="mb-0">Site Settings</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form class="small">
+                                        <div class="mb-2">
+                                            <label class="form-label">Public contact email</label>
+                                            <input class="form-control form-control-sm" type="email"
+                                                value="contact@judicialsolutions.in" />
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Primary phone</label>
+                                            <input class="form-control form-control-sm" type="text"
+                                                value="+91-98765-43210" />
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Homepage tagline</label>
+                                            <input class="form-control form-control-sm" type="text"
+                                                value="Justice with Integrity" />
+                                        </div>
+                                        <button class="btn btn-primary btn-sm mt-2" type="button">
+                                            Save changes
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card border-0 shadow-sm mb-3">
+                                <div
+                                    class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">System</h6>
+                                </div>
+                                <div class="card-body small">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="maintenanceMode" />
+                                        <label class="form-check-label" for="maintenanceMode">
+                                            Maintenance mode (show maintenance page to visitors)
+                                        </label>
+                                    </div>
+                                    <hr />
+                                    <p class="text-muted mb-1">Last login: <span id="last-login">Today, 10:14 PM</span>
+                                    </p>
+                                    <p class="text-muted mb-1">Dashboard version: 1.0.0</p>
+                                    <button class="btn btn-outline-danger btn-sm mt-2" type="button">
+                                        Clear cache & refresh data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS + Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Custom Admin JS -->
+    <script src="./Javascript/admin-auth.js"></script>
+    <script src="./Javascript/admin-dashboard.js"></script>
+</body>
+
+</html>

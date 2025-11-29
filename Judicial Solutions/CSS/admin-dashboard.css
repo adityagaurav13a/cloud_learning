@@ -1,0 +1,160 @@
+/* Admin Dashboard Styles */
+
+/* Layout */
+#wrapper {
+  min-height: 100vh;
+}
+
+/* Sidebar */
+#sidebar {
+  width: 240px;
+  min-height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#page-content-wrapper {
+  margin-left: 240px;
+  width: calc(100% - 240px);
+}
+
+/* Mobile sidebar */
+@media (max-width: 991.98px) {
+  #sidebar {
+    margin-left: -240px;
+    transition: margin 0.2s ease-in-out;
+    z-index: 1050;
+  }
+  #sidebar.active {
+    margin-left: 0;
+  }
+  #page-content-wrapper {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Sidebar content */
+.sidebar-header .logo-icon {
+  font-size: 1.6rem;
+}
+
+.sidebar-header .logo-text {
+  font-size: 0.85rem;
+}
+
+.sidebar-menu .nav-link {
+  color: #ced4da;
+  font-size: 0.9rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  margin: 0.15rem 0.7rem;
+}
+
+.sidebar-menu .nav-link i {
+  font-size: 1rem;
+}
+
+.sidebar-menu .nav-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.sidebar-menu .nav-link.active {
+  background: linear-gradient(135deg, #2563eb, #1e3a8a);
+  color: #ffffff;
+}
+
+/* Top navbar user avatar */
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1e3a8a);
+  color: #fff;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Stats cards */
+.stat-card {
+  border-radius: 0.9rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.bg-soft-primary {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+}
+
+.bg-soft-success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+}
+
+.bg-soft-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.bg-soft-info {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+/* Sections */
+.admin-section {
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tables */
+.table-sm th,
+.table-sm td {
+  font-size: 0.8rem;
+}
+
+/* Small form labels */
+.form-label.small {
+  font-size: 0.75rem;
+}
+
+/* Helper badge */
+.badge.bg-soft {
+  background-color: rgba(148, 163, 184, 0.15);
+}

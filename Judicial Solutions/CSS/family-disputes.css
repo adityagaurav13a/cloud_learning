@@ -1,0 +1,153 @@
+/* Reset & Fonts */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+body {
+  background: #f8f9fc;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Header */
+.navbar {
+  background: linear-gradient(90deg, #536976, #292E49);
+  color: white;
+  padding: 1rem 3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar nav a {
+  color: white;
+  margin-left: 2rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.navbar nav a:hover,
+.navbar nav a.active {
+  color: #00d4ff;
+}
+
+.login-link {
+  background: #00d4ff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  color: #111;
+}
+
+.login-link:hover {
+  background: #1de9b6;
+  color: white;
+}
+
+/* Hero Section */
+.hero {
+  background: url('family-law-bg.jpg') center/cover no-repeat;
+  color: white;
+  padding: 7rem 2rem;
+  text-align: center;
+  background-blend-mode: multiply;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.hero-content h1 {
+  font-size: 2.8rem;
+  margin-bottom: 1rem;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  color: #eee;
+}
+
+.btn-primary {
+  background: #00d4ff;
+  color: #111;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-primary:hover {
+  background: #1de9b6;
+  color: white;
+}
+
+/* Content Cards */
+.content-section {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.content-section h2 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* Call to Action */
+.cta {
+  background: #292E49;
+  color: white;
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.cta .btn-secondary {
+  background: #00d4ff;
+  color: #111;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 1rem;
+}
+
+.cta .btn-secondary:hover {
+  background: #1de9b6;
+  color: white;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1rem;
+  background: #111;
+  color: white;
+  font-size: 0.9rem;
+}

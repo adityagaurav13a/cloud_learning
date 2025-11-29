@@ -1,0 +1,88 @@
+<!-- ===============================
+     Admin Login Page
+     Scoped styles within .admin-page
+     =============================== -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | Judicial Portal</title>
+  <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body class="admin-page">
+  <!-- ===== HEADER (Reuse Existing) ===== -->
+  <header class="main-header">
+    <h1>⚖️ Judicial Portal</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="civil-cases.html">Civil</a></li>
+        <li><a href="criminal-cases.html">Criminal</a></li>
+        <li><a href="family-disputes.html">Family</a></li>
+        <li><a href="corporate-law.html">Corporate</a></li>
+        <li><a href="legal-documentation.html">Documentation</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ===== LOGIN + GAME WRAPPER ===== -->
+  <section class="admin-container">
+    <div class="admin-card">
+      <!-- Left: Login Form -->
+      <div class="login-section">
+        <h2>Admin Login</h2>
+        <form id="adminLoginForm">
+          <div class="input-group">
+            <i class="fa fa-user"></i>
+            <input type="email" placeholder="Enter your email" required>
+          </div>
+          <div class="input-group">
+            <input type="password" placeholder="Enter your password" required>
+          </div>
+          <a href="#" class="forgot-link">Forgot password?</a>
+          <button type="submit" class="login-btn">Login</button>
+          <p class="signup-text">Don’t have access? <a href="#">Request Access</a></p>
+        </form>
+      </div>
+
+
+      <!-- Right: Tic Tac Toe Game -->
+      <div class="game-section">
+        <h3>Tic Tac Toe</h3>
+        <!-- Game Mode Selection -->
+        <div class="game-mode">
+          <label>
+            <input type="radio" name="mode" value="single" checked> Single Player
+          </label>
+          <label>
+            <input type="radio" name="mode" value="double"> Two Players
+          </label>
+        </div>
+        <div class="board" id="ticTacToeBoard">
+          <div class="cell" data-index="0"></div>
+          <div class="cell" data-index="1"></div>
+          <div class="cell" data-index="2"></div>
+          <div class="cell" data-index="3"></div>
+          <div class="cell" data-index="4"></div>
+          <div class="cell" data-index="5"></div>
+          <div class="cell" data-index="6"></div>
+          <div class="cell" data-index="7"></div>
+          <div class="cell" data-index="8"></div>
+        </div>
+        <p class="game-status" id="gameStatus"></p>
+        <button id="resetGame" class="reset-btn">Reset Game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="main-footer">
+    <p>&copy; 2025 Judicial Portal | All Rights Reserved</p>
+  </footer>
+
+  <script src="./Javascript/script.js"></script>
+  <script src="./Javascript/admin-auth.js"></script>
+</body>
+</html>
