@@ -1,0 +1,1231 @@
+General
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* Header styles */
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: #222;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+
+.navbar ul {
+  list-style: none;
+  display: flex;
+  gap: 15px;
+}
+
+.navbar ul li a {
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+}
+
+/* Default */
+.navbar {
+  display: flex;
+  gap: 15px;
+}
+
+.hamburger {
+  display: none;
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+/* Responsive navbar */
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  font-size: 2rem;   /* Bigger logo */
+  color: #003366;
+}
+
+.logo-text {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #003366;
+  letter-spacing: 0.5px;
+}
+
+
+/* Admin Login */
+.login-link {
+  font-weight: bold;
+  color: #d9534f;
+  padding: 6px 12px;
+  border: 1px solid #d9534f;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.login-link:hover {
+  background: linear-gradient(135deg, #667eea, #764ba2); /* purple/blue gradient */
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;      /* vertical center */
+  justify-content: center;  /* horizontal center */
+  min-height: 100vh;        /* full viewport height */
+  text-align: center;
+
+  /* background: 
+    linear-gradient(rgba(0, 0, 255, 0.3), rgba(0, 0, 255, 0.3)),
+    url('still-life-with-scales-justice.jpg');
+  background-size: cover; */
+  background: url('../Images/drawings-about-legal-profession.jpg') no-repeat center center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+  padding: 0 20px;          /* spacing for small screens */
+}
+
+.hero .overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 50, 150, 0.5); /* blue effect */
+  z-index: 0; /* sits behind content */
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1; /* ensures text shows above overlay */
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  margin-top: 15px;
+}
+
+
+.btn {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 25px;
+  background: #0047ab;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+.btn:hover {
+  background: #003080;
+}
+
+/* Services */
+.services {
+  padding: 50px;
+  background: #f4f4f4;
+  text-align: center;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.service {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+/* Contact Section */
+.contact-section {
+  background: linear-gradient(135deg, #f0f4f9, #e6ecf5);
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.contact-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #222;
+}
+
+.contact-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 8px rgba(0, 86, 179, 0.3);
+  outline: none;
+}
+
+.phone-flex {
+  display: flex;
+  gap: 10px;
+}
+
+.phone-flex select {
+  flex: 1;
+}
+
+.phone-flex input {
+  flex: 2;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  background: #0056b3;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-submit:hover {
+  background: #003d80;
+}
+
+/* About Section */
+.about-section {
+  padding: 60px 20px;
+  background: #eef2f7;
+  text-align: center;
+}
+
+.about-section .section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #1d3557;
+}
+
+.about-section p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #444;
+  max-width: 800px;
+  margin: 0 auto 15px;
+}
+
+
+/* Footer */
+.footer {
+  background: #333;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.services-section {
+  padding: 60px 20px;
+  background: #f8f9fa;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #1d3557;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+}
+
+.service-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px 20px;
+  box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  text-align: center;
+  text-decoration: none;
+  color: #333;
+}
+
+.service-card .icon {
+  font-size: 2.2rem;
+  margin-bottom: 15px;
+}
+
+.service-card h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.service-card p {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.service-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #0077b6, #0096c7);
+  color: white;
+}
+
+.service-card:hover h3,
+.service-card:hover p,
+.service-card:hover .icon {
+  color: white;
+}
+
+
+/* Hero for Civil Cases */
+.civil-hero {
+  background: linear-gradient(rgba(0, 40, 90, 0.5), rgba(0, 40, 90, 0.5)), 
+              url('../Images/still-life-with-scales-justice.jpg');
+  background-size: cover;
+  background-position: center;
+  height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 700px;
+}
+
+/* Sections */
+.overview, .categories, .why-choose, .contact {
+  padding: 60px 20px;
+  max-width: 1100px;
+  margin: auto;
+  text-align: center;
+}
+
+.overview p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #444;
+}
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.card {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Why Choose */
+.why-choose ul {
+  list-style: none;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 2;
+}
+
+/* Contact */
+.contact form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.contact input, .contact textarea, .contact select {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.phone-group {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb, #1e3a8a);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Footer */
+.footer {
+  background: #1e3a8a;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin-top: 40px;
+}
+
+.services-grid {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.service-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  min-width: 200px;
+  text-align: center;
+  text-decoration: none;
+  color: black;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
+  background: linear-gradient(135deg, #0077b6, #90e0ef);
+  color: white;
+}
+
+/* Desktop */
+.navbar {
+  display: flex;
+  gap: 15px;
+}
+
+.hamburger {
+  display: none;
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white; /* adjust to header color */
+}
+
+
+
+/* Hero Section for Criminal Defense */
+.criminal-hero {
+  background: linear-gradient(rgba(0, 50, 120, 0.5), rgba(0, 50, 120, 0.5)),
+              url('../Images/criminal-law.jpg'); /* Replace with your preferred image */
+  background-size: cover;
+  background-position: center;
+  min-height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  padding: 0 20px;
+}
+
+.criminal-hero .glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 700px;
+}
+
+.criminal-hero h1 {
+  font-size: 2.8rem;
+  margin-bottom: 15px;
+}
+
+.criminal-hero p {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+
+/* =========================================================
+   Family-Dispute.css 
+   Purpose: Styles specific to the Family Disputes page
+   Author: [Aditya Gaurav]
+   Linked only to family-disputes.html
+   ========================================================= */
+.family-hero {
+  /* background: url('../Images/family-dispute.jpg') center/cover no-repeat; */
+  background: linear-gradient(rgba(0, 40, 90, 0.5), rgba(0, 40, 90, 0.5)), 
+              url('../Images/family-dispute.jpg');
+  background-size: cover;
+  background-position: center;
+  height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+}
+
+
+/* Highlight invalid fields */
+.invalid {
+  border: 2px solid red;
+  background-color: #ffe6e6;
+}
+
+/* Shake animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.4s ease;
+}
+
+/* Success/Error text style */
+#formMessage {
+  margin-top: 10px;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+
+/* =========================================================
+   Corporate-Law Styles
+   Purpose: Styles specific to Corporate Law page
+   Linked with corporate-law.html
+   Author: [Your Name]
+   Date: 12-Oct-2025
+   ========================================================= */
+/* Corporate Hero Section */
+.corporate-hero {
+  /* background: url('../Images/family-dispute.jpg') center/cover no-repeat; */
+  background: linear-gradient(rgba(0, 40, 90, 0.5), rgba(0, 40, 90, 0.5)), 
+              url('../Images/corporate_law.jpg');
+  background-size: cover;
+  background-position: center;
+  height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+}
+
+/* =========================================================
+   Legal Documentation Page Styles
+   Purpose: Styles specific to the Legal Documentation page
+   ========================================================= */
+.legal-hero {
+  background: linear-gradient(rgba(0, 40, 90, 0.5), rgba(0, 40, 90, 0.5)), 
+              url('../Images/legal-documentation.jpg');
+  color: #fff;
+  background-size: cover;
+  background-position: center;
+  height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+}
+
+/* Working fine till here for all pages */
+
+/* =========================================================
+   Admin Login Page Styles (Scoped)
+   Scope: .admin-page
+   Purpose: Modern glassmorphic dual-panel login + game
+   ========================================================= */
+
+.admin-page {
+  background: url('../Images/admin-bg.jpg') center/cover no-repeat;
+  background-attachment: fixed; /* Optional: keeps background fixed on scroll */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ---------- HEADER (Glassmorphic) ---------- */
+.admin-page .main-header {
+  background: rgba(15, 25, 45, 0.7);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.25);
+  padding: 0px 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-page .main-header h1 {
+  color: #f9d342;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.admin-page .main-header nav ul {
+  display: flex;
+  list-style: none;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-page .main-header nav a {
+  color: #e0e0e0;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.admin-page .main-header nav a:hover {
+  color: #f9d342;
+}
+
+/* ---------- CONTAINER ---------- */
+.admin-page .admin-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+/* ---------- CARD ---------- */
+.admin-page .admin-card {
+  display: flex;
+  width: 850px;
+  max-width: 95%;
+  border-radius: 20px;
+  overflow: hidden;
+  /* backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4); */
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- LOGIN PANEL ---------- */
+.admin-page .login-section {
+  flex: 1;
+  padding: 50px 45px;
+  /* background: rgba(255, 255, 255, 0.12); */
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.admin-page .login-section h2 {
+  margin-bottom: 25px;
+  color: #f9d342;
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.admin-page .input-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.admin-page .input-group input {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-bottom: 2px solid #f9d342;
+  background: transparent;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.admin-page .input-group i {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #f9d342;
+  opacity: 0.8;
+}
+
+.admin-page .input-group input:focus {
+  border-color: #ffe470;
+}
+
+.admin-page .forgot-link {
+  color: #984d87;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 15px;
+}
+
+.admin-page .login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #f9d342;
+  border: none;
+  border-radius: 8px;
+  color: #0b172d;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.admin-page .login-btn:hover {
+  background: #ffe470;
+}
+
+.admin-page .signup-text {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 15px;
+}
+
+/* ---------- GAME PANEL ---------- */
+.admin-page .game-section {
+  flex: 1;
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.25);
+  /* background: rgba(255, 255, 255, 0.1); */
+  /* border-left: 1px solid rgba(255, 215, 0, 0.2); */
+  text-align: center;
+}
+
+.admin-page .game-section h3 {
+  color: #f9d342;
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+}
+
+.admin-page .board {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  grid-gap: 10px;
+  justify-content: center;
+  margin: 25px auto;
+}
+
+.admin-page .cell {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  color: #f9d342;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.admin-page .cell:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.admin-page .reset-btn {
+  background: #f9d342;
+  color: #0b172d;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.admin-page .reset-btn:hover {
+  background: #ffe470;
+}
+
+.admin-page .game-status {
+  margin-top: 10px;
+  font-size: 1rem;
+}
+
+/* ---------- FOOTER (Glassmorphic) ---------- */
+.admin-page .main-footer {
+  /* background: rgba(36, 37, 38, 0.7); */
+  /* backdrop-filter: blur(10px); */
+  background: rgba(15, 25, 45, 0.6);
+  backdrop-filter: blur(15px) saturate(160%);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
+  border-top: 1px solid rgba(255, 215, 0, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  padding: 12px;
+  font-size: 0.9rem;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 950px) {
+  .admin-page .admin-card {
+    flex-direction: column;
+    width: 95%;
+  }
+  .admin-page .login-section,
+  .admin-page .game-section {
+    flex: none;
+    width: 100%;
+  }
+  .admin-page .game-section {
+    padding: 30px;
+  }
+  .admin-page .board {
+    grid-template-columns: repeat(3, 70px);
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-page .main-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .admin-page .main-header nav ul {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .admin-page .login-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .admin-page .game-section h3 {
+    font-size: 1.2rem;
+  }
+}
+
+/* Highlight winning cells */
+.win-highlight {
+  background-color: #00ff99; /* bright green */
+  transition: 0.5s;
+  font-weight: bold;
+}
+
+@keyframes flash {
+  0%, 100% { background-color: #00ff99; }
+  50% { background-color: #ffffff; }
+}
+
+.win-highlight {
+  animation: flash 1s ease infinite;
+}
+/* End of Admin Login Page Styles */
+
+
+/* =========================================================
+   Judiciary Team Page - Scoped Dark Gradient + Animation
+   ========================================================= */
+
+
+/**************************************
+   JUDICIARY PAGE – HEADER SCOPED CSS
+**************************************/
+
+.judiciary-page .site-header {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2000;
+
+    /* Glassmorphism */
+    background: rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+
+    /* Scroll animations */
+    transition: transform 0.45s ease, padding 0.35s ease;
+}
+
+/* HEADER HIDDEN WHILE SCROLLING DOWN */
+.judiciary-page .site-header.header-hidden {
+    transform: translateY(-120%);
+}
+
+/* SMALL HEADER WHEN SCROLLING UP */
+.judiciary-page .site-header.header-small {
+    padding: 8px 32px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(22px);
+}
+
+/* NAVBAR FIXES */
+.judiciary-page .navbar ul {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.judiciary-page .login-link {
+    padding: 7px 14px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(12px);
+}
+
+/* MOBILE */
+.judiciary-page .hamburger {
+    display: none;
+    color: white;
+    background: none;
+    font-size: 2rem;
+    border: none;
+}
+
+@media (max-width: 850px) {
+    .judiciary-page .hamburger { display: block; }
+
+    .judiciary-page .navbar {
+        position: absolute;
+        top: 75px;
+        right: 20px;
+        width: 210px;
+        padding: 15px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255,255,255,0.2);
+        display: none;
+    }
+
+    .judiciary-page .navbar.show {
+        display: block;
+    }
+
+    .judiciary-page .navbar ul {
+        flex-direction: column;
+        gap: 12px;
+        white-space: normal;
+    }
+}
+
+
+
+/* =========================================================
+   Judiciary Team Page - Scoped Dark Gradient + Animation
+   ========================================================= */
+
+.judiciary-team-section {
+    padding: 70px 30px;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); /* sleek dark gradient */
+    background-size: 400% 400%; /* allows smooth animation */
+    animation: jt-gradientShift 15s ease infinite; /* scoped animation */
+    text-align: center;
+    font-family: "Poppins", sans-serif;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Scoped Gradient Animation */
+@keyframes jt-gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Overlay (optional subtle accent) */
+.judiciary-team-section::before {
+    content: "";
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: 0;
+    opacity: 0.3;
+}
+
+/* Ensure content stays above overlay */
+.judiciary-team-section > * {
+    position: relative;
+    z-index: 2;
+}
+
+
+
+/* Optional: add a soft geometric accent overlay */
+.judiciary-team-section::before {
+    content: "";
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle at center, #dfe6e9 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: 0;
+    opacity: 0.4;
+}
+
+/* Ensures all content stays above overlay */
+.judiciary-team-section > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Title */
+.jt-title {
+    font-size: 34px;
+    font-weight: 700;
+    color: #2d2d2d;
+    margin-bottom: 10px;
+    animation: fadeInDown 0.8s ease forwards;
+}
+
+.jt-subtitle {
+    font-size: 16px;
+    color: #6d6d6d;
+    margin-bottom: 40px;
+    animation: fadeIn 1s ease forwards;
+}
+
+/* Layout */
+.jt-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+}
+
+/* Card */
+.jt-card {
+    width: 260px;
+    padding: 20px;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0px 6px 18px rgba(0,0,0,0.06); /* softer modern shadow */
+    transition: 0.35s ease;
+    opacity: 0;
+    animation: fadeInUp 1s ease forwards;
+}
+
+.jt-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0px 12px 28px rgba(0,0,0,0.12);
+}
+
+/* Circle Image */
+.jt-img-wrapper {
+    width: 130px;
+    height: 130px;
+    margin: 0 auto 15px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #a29bfe; /* modern accent color */
+    animation: popIn 0.7s ease forwards;
+}
+
+.jt-img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Name + Role */
+.jt-name {
+    font-size: 19px;
+    font-weight: 600;
+    color: #2b2b2b;
+}
+
+.jt-role {
+  color: #a29bfe; /*soft indigo */
+  font-weight: 500;
+}
+.jt-img-wrapper {
+  border: 4px solid #a29bfe;
+}
+
+.jt-card.chief {
+  background: linear-gradient(135deg, #fdfbfb, #ebedee);
+}
+.jt-card.senior {
+  background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+}
+
+.jt-card.director {
+  background: linear-gradient(135deg, #e0f7fa, #c8e6c9); /* soft teal to mint */
+}
+
+.jt-card.partner {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2); /* warm peach tones */
+}
+
+.jt-button {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #764ba2;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+.jt-button:hover {
+  background: #5e3b91;
+}
+
+.jt-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0px 12px 28px rgba(0,0,0,0.12);
+  border: 1px solid #a29bfe;
+}
+
+
+/* Details */
+.jt-details {
+    text-align: left;
+    font-size: 14px;
+    color: #444;
+    padding-left: 15px;
+}
+
+.jt-details li {
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+/* Staggered animation delays */
+.jt-card:nth-child(1) { animation-delay: 0.1s; }
+.jt-card:nth-child(2) { animation-delay: 0.25s; }
+.jt-card:nth-child(3) { animation-delay: 0.4s; }
+.jt-card:nth-child(4) { animation-delay: 0.55s; }
+.jt-card:nth-child(5) { animation-delay: 0.7s; }
+.jt-card:nth-child(6) { animation-delay: 0.85s; }
+
+/* -------------------------
+   ANIMATIONS
+   ------------------------- */
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(25px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+    0% { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+

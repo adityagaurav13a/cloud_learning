@@ -1,0 +1,161 @@
+/* ===========================================
+   Login + TicTacToe Split Page
+   Author: Aditya Gaurav
+   =========================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  height: 100vh;
+  background: linear-gradient(to right, #1c1f26, #0b0f14);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  display: flex;
+  width: 90%;
+  max-width: 1000px;
+  height: 600px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+/* Left Section */
+.left-section {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 80%;
+  max-width: 350px;
+  text-align: center;
+}
+
+.login-card h2 {
+  color: #222;
+  margin-bottom: 10px;
+}
+
+.login-card p {
+  color: #555;
+  margin-bottom: 30px;
+}
+
+.input-group {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+}
+
+.btn {
+  width: 100%;
+  padding: 10px;
+  background: #007bff;
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn:hover {
+  background: #0056b3;
+}
+
+.note {
+  margin-top: 15px;
+  font-size: 0.9rem;
+}
+
+.note a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+/* Right Section (Game) */
+.right-section {
+  flex: 1;
+  background: #161b22;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-title {
+  margin-bottom: 20px;
+}
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  grid-gap: 10px;
+}
+
+.cell {
+  width: 100px;
+  height: 100px;
+  background: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.3s;
+}
+
+.cell:hover {
+  background: #333;
+}
+
+.status-text {
+  margin-top: 20px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+#restartBtn {
+  margin-top: 15px;
+  width: 150px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+  }
+  .left-section, .right-section {
+    width: 100%;
+    height: auto;
+    padding: 30px 0;
+  }
+}
