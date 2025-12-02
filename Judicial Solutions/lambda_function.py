@@ -186,29 +186,6 @@ def partial_update_item(resource: str, item_id: str, updates: Dict[str, Any]) ->
     logger.info("Partially updated %s id=%s fields=%s", table.table_name, item_id, list(updates.keys()))
     return resp.get("Attributes")
 
-# -------------------------
-# Router
-# -------------------------
-# def route(event: Dict[str, Any]) -> Dict[str, Any]:
-#     method = event.get("httpMethod", "")
-#     path_params = event.get("pathParameters") or {}
-#     raw_path = event.get("rawPath") or event.get("path") or "/"
-
-#     # CORS preflight
-#     if method == "OPTIONS":
-#         return make_response(204, None)
-
-#     # normalize path segments
-#     parts = [p for p in raw_path.split("/") if p]
-#     if not parts:
-#         return make_response(404, {"error": "no_resource_in_path"})
-
-#     resource = parts[0]  # expected: forms | cases | messages
-
-
-
-
-
 def route(event: Dict[str, Any]) -> Dict[str, Any]:
     # Support both API Gateway REST API (v1) and HTTP API (v2) formats
     request_context = event.get("requestContext") or {}
