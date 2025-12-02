@@ -1,5 +1,6 @@
 // Javascript/admin-dashboard.js
 
+// Backend API base (API Gateway)
 const API_BASE = "https://86isfklr9k.execute-api.ap-south-1.amazonaws.com";
 
 
@@ -54,6 +55,8 @@ function formatAppointmentDate(raw) {
 
 // ========== Leads: fetch from backend ==========
 
+// ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
+
 async function fetchForms() {
   try {
     const res = await fetch(`${API_BASE}/forms`);
@@ -69,6 +72,37 @@ async function fetchForms() {
   }
 }
 
+// card: New Leads (7 days)
+function updateLeadStatsFromForms(forms) {
+  const now = new Date();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(now.getDate() - 6); // last 7 days including today
+
+  let leadsLast7 = 0;
+
+  for (const item of forms) {
+    if (!item.created_at) continue;
+    const created = new Date(item.created_at);
+    if (Number.isNaN(created.getTime())) continue;
+
+    if (created >= sevenDaysAgo && created <= now) {
+      leadsLast7++;
+    }
+  }
+
+  const statEl = document.getElementById("stat-leads");
+  if (statEl) {
+    statEl.textContent = leadsLast7;
+  }
+}
+
+async function loadDashboardData() {
+  const forms = await fetchForms();
+  updateLeadStatsFromForms(forms);
+  updateRecentLeadsTable(forms);
+  updateLeadsSectionTable(forms);
+}
+
 function formatDateShort(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -80,58 +114,19 @@ function formatDateTimeReadable(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
-  const time = d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+
+  const date = d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+  });
+  const time = d.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
   return `${date}, ${time}`;
 }
 
-// card: New Leads (7 days)
-function updateLeadStatsFromForms(forms) {
-  const now = new Date();
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(now.getDate() - 6);
-
-  let count = 0;
-  for (const f of forms) {
-    if (!f.created_at) continue;
-    const d = new Date(f.created_at);
-    if (Number.isNaN(d.getTime())) continue;
-    if (d >= sevenDaysAgo && d <= now) count++;
-  }
-
-  const el = document.getElementById("stat-leads");
-  if (el) el.textContent = count;
-}
-
-// dashboard: Recent Leads table (left)
-function updateRecentLeadsTable(forms) {
-  const body = document.getElementById("recent-leads-body");
-  if (!body) return;
-
-  // sort newest first and take top 5
-  const sorted = [...forms].sort(
-    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-  );
-  const top = sorted.slice(0, 5);
-
-  body.innerHTML = top
-    .map((f) => {
-      const name = f.name || "Unknown";
-      const type = f.case_type || "General";
-      const date = formatDateShort(f.created_at);
-      const status = f.read ? "Closed" : "New";
-      return `
-        <tr>
-          <td>${name}</td>
-          <td>${type}</td>
-          <td>${date}</td>
-          <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
-        </tr>`;
-    })
-    .join("");
-}
-
-// Leads section: full table
+// Leads section: full table (Leads / Contact Requests)
 function updateLeadsSectionTable(forms) {
   const body = document.getElementById("leads-table-body");
   if (!body) return;
@@ -162,12 +157,36 @@ function updateLeadsSectionTable(forms) {
     .join("");
 }
 
-async function loadDashboardData() {
-  const forms = await fetchForms();
-  updateLeadStatsFromForms(forms);
-  updateRecentLeadsTable(forms);
-  updateLeadsSectionTable(forms);
+// Dashboard: Recent Leads table (left small table)
+function updateRecentLeadsTable(forms) {
+  const body = document.getElementById("recent-leads-body");
+  if (!body) return;
+
+  // sort newest first and take top 5
+  const sorted = [...forms].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+  const top = sorted.slice(0, 5);
+
+  body.innerHTML = top
+    .map((f) => {
+      const name = f.name || "Unknown";
+      const type = f.case_type || "General";
+      const date = formatDateShort(f.created_at);
+      const status = f.read ? "Closed" : "New";
+      return `
+        <tr>
+          <td>${name}</td>
+          <td>${type}</td>
+          <td>${date}</td>
+          <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
+        </tr>`;
+    })
+    .join("");
 }
+
+
+// ========== Main Dashboard JS ==========
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -258,58 +277,6 @@ function populateDummyData() {
   renderAppointmentsTable();
   renderAppointmentsPreview();
   setupAppointmentForm();
-
-  // Leads table (full)
-  const leadsTableBody = document.getElementById("leads-table-body");
-  if (leadsTableBody) {
-    const leads = [
-      {
-        id: 1,
-        name: "Rohit Kumar",
-        email: "rohit@example.com",
-        phone: "+91 98765 00001",
-        type: "Civil",
-        received: "26 Nov, 10:20 AM",
-        status: "New",
-      },
-      {
-        id: 2,
-        name: "Priya Sharma",
-        email: "priya@example.com",
-        phone: "+91 98765 00002",
-        type: "Family",
-        received: "25 Nov, 6:45 PM",
-        status: "In progress",
-      },
-      {
-        id: 3,
-        name: "Aman Verma",
-        email: "aman@example.com",
-        phone: "+91 98765 00003",
-        type: "Criminal",
-        received: "23 Nov, 3:10 PM",
-        status: "Closed",
-      },
-    ];
-    leadsTableBody.innerHTML = leads
-      .map(
-        (l) => `
-      <tr>
-        <td>${l.id}</td>
-        <td>${l.name}</td>
-        <td>${l.email}</td>
-        <td>${l.phone}</td>
-        <td>${l.type}</td>
-        <td>${l.received}</td>
-        <td><span class="badge bg-${statusColor(l.status)}">${l.status}</span></td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-outline-primary me-1">View</button>
-          <button class="btn btn-sm btn-outline-secondary">Note</button>
-        </td>
-      </tr>`
-      )
-      .join("");
-  }
 
   // Services table
   const servicesTableBody = document.getElementById("services-table-body");
@@ -685,6 +652,24 @@ function initCharts() {
 function setupCaseSearchMock() {
   const form = document.getElementById("case-search-form");
   if (!form) return;
+
+  const refreshBtn = document.getElementById("refresh-leads");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML =
+        '<i class="bi bi-arrow-clockwise me-1"></i>Refreshing...';
+
+      const forms = await fetchForms();
+      updateLeadStatsFromForms(forms);
+      updateRecentLeadsTable(forms);
+      updateLeadsSectionTable(forms);
+
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML =
+        '<i class="bi bi-arrow-clockwise me-1"></i>Refresh';
+    });
+  }
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
