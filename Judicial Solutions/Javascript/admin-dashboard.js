@@ -16,6 +16,8 @@ let editingAppointmentId = null; // null = create, not edit
 let leadsAppointmentsChart = null;
 let caseTypeChart = null;
 let savedCases = [];
+let servicesList = [];
+let editingServiceId = null;  
 
 
 function formatAppointmentDate(raw) {
@@ -201,6 +203,242 @@ async function loadSavedCasesFromApi() {
   updateSavedCasesStat(savedCases);
   updateSavedCasesTable(savedCases);
 }
+
+// ========== Services: API + UI helpers (Step 9B + 9C) ==========
+
+
+async function fetchServices() {
+  try {
+    const res = await fetch(`${API_BASE}/services`);
+    if (!res.ok) {
+      console.error("Failed to fetch services", res.status);
+      return [];
+    }
+    const data = await res.json();
+    return data.items || [];
+  } catch (err) {
+    console.error("Error fetching services:", err);
+    return [];
+  }
+}
+
+async function createService(payload) {
+  try {
+    const res = await fetch(`${API_BASE}/services`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Failed to create service", res.status, data);
+      alert("Error creating service.");
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Network error creating service", err);
+    alert("Error creating service.");
+    return null;
+  }
+}
+
+async function updateService(id, updates) {
+  try {
+    const res = await fetch(`${API_BASE}/services/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Failed to update service", res.status, data);
+      alert("Error updating service.");
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Network error updating service", err);
+    alert("Error updating service.");
+    return null;
+  }
+}
+
+async function deleteService(id) {
+  try {
+    const res = await fetch(`${API_BASE}/services/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok && res.status !== 204) {
+      console.error("Failed to delete service", res.status);
+      alert("Error deleting service.");
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Network error deleting service", err);
+    alert("Error deleting service.");
+    return false;
+  }
+}
+
+function updateServicesTable(services) {
+  const body = document.getElementById("services-table-body");
+  if (!body) return;
+
+  const sorted = [...services].sort(
+    (a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0)
+  );
+
+  body.innerHTML = sorted
+    .map((s) => {
+      const shown = s.shown !== false; // default true
+      const name = s.name || "Untitled service";
+      const category = s.category || s.cat || "-";
+      const updated =
+        (s.updated_at || s.created_at || "").toString().slice(0, 10);
+
+      return `
+        <tr>
+          <td>${name}</td>
+          <td>${category}</td>
+          <td>
+            <span class="badge bg-${shown ? "success" : "secondary"}">
+              ${shown ? "Visible" : "Hidden"}
+            </span>
+          </td>
+          <td>${updated}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1 btn-service-edit" data-id="${s.id}">Edit</button>
+            <button class="btn btn-sm btn-outline-secondary me-1 btn-service-toggle" data-id="${s.id}">
+              ${shown ? "Hide" : "Show"}
+            </button>
+            <button class="btn btn-sm btn-outline-danger btn-service-delete" data-id="${s.id}">Delete</button>
+          </td>
+        </tr>`;
+    })
+    .join("");
+}
+
+async function loadServicesFromApi() {
+  const items = await fetchServices();
+  servicesList = items || [];
+  updateServicesTable(servicesList);
+}
+
+function openServiceModal(service) {
+  const form = document.getElementById("service-form");
+  if (!form) return;
+
+  if (service) {
+    editingServiceId = service.id;
+    document.getElementById("serviceModalLabel").textContent = "Edit Service";
+    document.getElementById("service-name").value = service.name || "";
+    document.getElementById("service-category").value =
+      service.category || "";
+    document.getElementById("service-description").value =
+      service.description || "";
+    document.getElementById("service-shown").checked = service.shown !== false;
+  } else {
+    editingServiceId = null;
+    document.getElementById("serviceModalLabel").textContent = "Add Service";
+    form.reset();
+    document.getElementById("service-shown").checked = true;
+  }
+
+  const modalEl = document.getElementById("serviceModal");
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+}
+
+function setupServiceForm() {
+  const form = document.getElementById("service-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("service-name").value.trim();
+    const category = document.getElementById("service-category").value.trim();
+    const description = document
+      .getElementById("service-description")
+      .value.trim();
+    const shown = document.getElementById("service-shown").checked;
+
+    if (!name) {
+      alert("Service name is required.");
+      return;
+    }
+
+    const payload = { name, category, description, shown };
+
+    let result = null;
+
+    if (editingServiceId) {
+      result = await updateService(editingServiceId, payload);
+      if (!result) return;
+
+      servicesList = servicesList.map((s) =>
+        s.id === editingServiceId ? { ...s, ...result } : s
+      );
+    } else {
+      result = await createService(payload);
+      if (!result) return;
+
+      servicesList.unshift(result);
+    }
+
+    updateServicesTable(servicesList);
+
+    editingServiceId = null;
+    const modalEl = document.getElementById("serviceModal");
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+  });
+}
+
+function setupServiceTableActions() {
+  const body = document.getElementById("services-table-body");
+  if (!body) return;
+
+  body.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".btn-service-edit");
+    const toggleBtn = e.target.closest(".btn-service-toggle");
+    const deleteBtn = e.target.closest(".btn-service-delete");
+
+    if (editBtn) {
+      const id = editBtn.getAttribute("data-id");
+      const service = servicesList.find((s) => s.id === id);
+      if (service) openServiceModal(service);
+    } else if (toggleBtn) {
+      const id = toggleBtn.getAttribute("data-id");
+      const service = servicesList.find((s) => s.id === id);
+      if (!service) return;
+
+      const newShown = service.shown === false ? true : false;
+      const updated = await updateService(id, { shown: newShown });
+      if (!updated) return;
+
+      servicesList = servicesList.map((s) =>
+        s.id === id ? { ...s, ...updated } : s
+      );
+      updateServicesTable(servicesList);
+    } else if (deleteBtn) {
+      const id = deleteBtn.getAttribute("data-id");
+      if (!id) return;
+
+      const ok = confirm("Delete this service?");
+      if (!ok) return;
+
+      const success = await deleteService(id);
+      if (!success) return;
+
+      servicesList = servicesList.filter((s) => s.id !== id);
+      updateServicesTable(servicesList);
+    }
+  });
+}
+
 
 // ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
 async function fetchForms() {
@@ -467,6 +705,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Saved cases: real backend data (Step 7A)
   loadSavedCasesFromApi();
+
+  // Services
+  loadServicesFromApi();
+  setupServiceForm();
+  setupServiceTableActions();
+
+  // "Add service" button
+  const addServiceBtn = document.getElementById("addServiceBtn");
+  if (addServiceBtn) {
+    addServiceBtn.addEventListener("click", () => {
+      openServiceModal(null); // create mode
+    });
+  }
 });
 
 /* ========== Sidebar Navigation ========== */
@@ -545,56 +796,6 @@ function populateDummyData() {
   // Appointments: full table + dashboard preview + form handling
   renderAppointmentsTable();
   renderAppointmentsPreview();
-
-  // Services table
-  const servicesTableBody = document.getElementById("services-table-body");
-  if (servicesTableBody) {
-    const services = [
-      {
-        name: "Civil Disputes",
-        cat: "Civil",
-        show: true,
-        updated: "24 Nov",
-      },
-      {
-        name: "Criminal Defense",
-        cat: "Criminal",
-        show: true,
-        updated: "20 Nov",
-      },
-      {
-        name: "Family & Matrimonial",
-        cat: "Family",
-        show: true,
-        updated: "19 Nov",
-      },
-      {
-        name: "Corporate & Compliance",
-        cat: "Corporate",
-        show: false,
-        updated: "15 Nov",
-      },
-    ];
-    servicesTableBody.innerHTML = services
-      .map(
-        (s) => `
-      <tr>
-        <td>${s.name}</td>
-        <td>${s.cat}</td>
-        <td>
-          <span class="badge bg-${s.show ? "success" : "secondary"}">
-            ${s.show ? "Visible" : "Hidden"}
-          </span>
-        </td>
-        <td>${s.updated}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-outline-primary me-1">Edit</button>
-          <button class="btn btn-sm btn-outline-secondary">Preview</button>
-        </td>
-      </tr>`
-      )
-      .join("");
-  }
 
   // Blog table
   const blogBody = document.getElementById("blog-table-body");
