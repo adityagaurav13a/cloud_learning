@@ -18,12 +18,17 @@ logger = logging.getLogger("judicial_single_lambda")
 TABLE_FORMS = os.environ.get("TABLE_FORMS", "judicial-forms")
 TABLE_CASES = os.environ.get("TABLE_CASES", "judicial-cases")
 TABLE_MESSAGES = os.environ.get("TABLE_MESSAGES", "judicial-messages")
+TABLE_APPOINTMENTS = os.environ.get("TABLE_APPOINTMENTS", "judicial-appointments"),
+TABLE_SERVICES = os.environ.get("TABLE_SERVICES", "judicial-services")
+
 
 dynamodb = boto3.resource("dynamodb")
 TABLE_MAP = {
     "forms": dynamodb.Table(TABLE_FORMS),
     "cases": dynamodb.Table(TABLE_CASES),
     "messages": dynamodb.Table(TABLE_MESSAGES),
+    "appointments": dynamodb.Table(TABLE_APPOINTMENTS),
+    "services": dynamodb.Table(TABLE_SERVICES),
 }
 
 # -------------------------
@@ -99,6 +104,22 @@ def create_resource_item(resource: str, payload: Dict[str, Any]) -> Dict[str, An
             "recipient": payload.get("recipient", "").strip(),
             "body": payload.get("body", "").strip(),
         })
+    elif resource == "appointments":
+        base.update({
+            "client": payload.get("client", "").strip(),
+            "case_type": payload.get("case_type", "").strip(),
+            "datetime": payload.get("datetime", "").strip(),   # ISO string
+            "mode": (payload.get("mode") or "In person").strip(),
+            "status": (payload.get("status") or "Pending").strip(),
+            "notes": payload.get("notes", "").strip(),
+        })
+    elif resource == "services":
+        base.update({
+            "name": payload.get("name", "").strip(),
+            "category": payload.get("category", "").strip(),   # e.g. Civil/Criminal
+            "shown": bool(payload.get("shown", True)),         # show on site?
+            "description": payload.get("description", "").strip(),
+    })
 
     # Include any extra fields from payload (non-destructive)
     extras = {k: v for k, v in payload.items() if k not in base}
@@ -186,6 +207,29 @@ def partial_update_item(resource: str, item_id: str, updates: Dict[str, Any]) ->
     logger.info("Partially updated %s id=%s fields=%s", table.table_name, item_id, list(updates.keys()))
     return resp.get("Attributes")
 
+# -------------------------
+# Router
+# -------------------------
+# def route(event: Dict[str, Any]) -> Dict[str, Any]:
+#     method = event.get("httpMethod", "")
+#     path_params = event.get("pathParameters") or {}
+#     raw_path = event.get("rawPath") or event.get("path") or "/"
+
+#     # CORS preflight
+#     if method == "OPTIONS":
+#         return make_response(204, None)
+
+#     # normalize path segments
+#     parts = [p for p in raw_path.split("/") if p]
+#     if not parts:
+#         return make_response(404, {"error": "no_resource_in_path"})
+
+#     resource = parts[0]  # expected: forms | cases | messages
+
+
+
+
+
 def route(event: Dict[str, Any]) -> Dict[str, Any]:
     # Support both API Gateway REST API (v1) and HTTP API (v2) formats
     request_context = event.get("requestContext") or {}
@@ -231,6 +275,12 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
             if resource == "messages":
                 if not payload.get("sender") or not payload.get("recipient") or not payload.get("body"):
                     return make_response(400, {"error": "sender, recipient, body required for messages"})
+            if resource == "appointments":
+                if not payload.get("client") or not payload.get("datetime"):
+                    return make_response(400, {"error": "client and datetime required for appointments"})
+            if resource == "services":
+                if not payload.get("name"):
+                    return make_response(400, {"error": "name required for services"})
             created = create_resource_item(resource, payload)
             return make_response(201, created)
 
