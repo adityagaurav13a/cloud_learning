@@ -8,103 +8,103 @@
 /* ------------------ Helper Functions ------------------ */
 
 // Show error/success message
-function showMessage(target, msg, color = "red") {
-  target.style.color = color;
-  target.textContent = msg;
-}
+// function showMessage(target, msg, color = "red") {
+//   target.style.color = color;
+//   target.textContent = msg;
+// }
 
-// Highlight invalid fields with CSS animation
-function highlightInvalid(fields) {
-  fields.forEach(field => {
-    field.classList.add("invalid", "shake");
-    setTimeout(() => field.classList.remove("shake"), 500);
-  });
-}
+// // Highlight invalid fields with CSS animation
+// function highlightInvalid(fields) {
+//   fields.forEach(field => {
+//     field.classList.add("invalid", "shake");
+//     setTimeout(() => field.classList.remove("shake"), 500);
+//   });
+// }
 
-// Common patterns
-const namePattern = /^[A-Za-z\s]+$/;
-const emailPattern = /^[A-Za-z0-9._%+-]+@(gmail\.com|yahoo\.com|outlook\.com)$/;
-const phonePattern = /^\d{10}$/;
+// // Common patterns
+// const namePattern = /^[A-Za-z\s]+$/;
+// const emailPattern = /^[A-Za-z0-9._%+-]+@(gmail\.com|yahoo\.com|outlook\.com)$/;
+// const phonePattern = /^\d{10}$/;
 
-/* =========================================================
-   Function to attach form validation to any form
-   ========================================================= */
-function handleFormValidation(formId) {
-  const form = document.getElementById(formId);
-  if (!form) return;
+// /* =========================================================
+//    Function to attach form validation to any form
+//    ========================================================= */
+// function handleFormValidation(formId) {
+//   const form = document.getElementById(formId);
+//   if (!form) return;
 
-  let formMessage = form.querySelector("#formMessage");
-  if (!formMessage) {
-    formMessage = document.createElement("p");
-    formMessage.id = "formMessage";
-    formMessage.classList.add("form-message");
-    form.appendChild(formMessage);
-  }
+//   let formMessage = form.querySelector("#formMessage");
+//   if (!formMessage) {
+//     formMessage = document.createElement("p");
+//     formMessage.id = "formMessage";
+//     formMessage.classList.add("form-message");
+//     form.appendChild(formMessage);
+//   }
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
+//   form.addEventListener("submit", function (e) {
+//     e.preventDefault();
 
-    const name = form.querySelector("#name");
-    const email = form.querySelector("#email");
-    const phone = form.querySelector("#phone");
-    const message = form.querySelector("#message");
+//     const name = form.querySelector("#name");
+//     const email = form.querySelector("#email");
+//     const phone = form.querySelector("#phone");
+//     const message = form.querySelector("#message");
 
-    const nameVal = name.value.trim();
-    const emailVal = email.value.trim();
-    const phoneVal = phone.value.trim();
-    const messageVal = message.value.trim();
+//     const nameVal = name.value.trim();
+//     const emailVal = email.value.trim();
+//     const phoneVal = phone.value.trim();
+//     const messageVal = message.value.trim();
 
-    // Reset previous styles
-    [name, email, phone, message].forEach(field => field.classList.remove("invalid"));
+//     // Reset previous styles
+//     [name, email, phone, message].forEach(field => field.classList.remove("invalid"));
 
-    if (!nameVal || !emailVal || !phoneVal || !messageVal) {
-      showMessage(formMessage, "⚠️ All fields are required.");
-      highlightInvalid([name, email, phone, message]);
-      return;
-    }
+//     if (!nameVal || !emailVal || !phoneVal || !messageVal) {
+//       showMessage(formMessage, "⚠️ All fields are required.");
+//       highlightInvalid([name, email, phone, message]);
+//       return;
+//     }
 
-    if (!namePattern.test(nameVal)) {
-      showMessage(formMessage, "⚠️ Name must contain only letters and spaces.");
-      highlightInvalid([name]);
-      return;
-    }
+//     if (!namePattern.test(nameVal)) {
+//       showMessage(formMessage, "⚠️ Name must contain only letters and spaces.");
+//       highlightInvalid([name]);
+//       return;
+//     }
 
-    if (!emailPattern.test(emailVal)) {
-      showMessage(formMessage, "⚠️ Use a valid Gmail, Yahoo, or Outlook email.");
-      highlightInvalid([email]);
-      return;
-    }
+//     if (!emailPattern.test(emailVal)) {
+//       showMessage(formMessage, "⚠️ Use a valid Gmail, Yahoo, or Outlook email.");
+//       highlightInvalid([email]);
+//       return;
+//     }
 
-    if (!phonePattern.test(phoneVal)) {
-      showMessage(formMessage, "⚠️ Phone number must be exactly 10 digits.");
-      highlightInvalid([phone]);
-      return;
-    }
+//     if (!phonePattern.test(phoneVal)) {
+//       showMessage(formMessage, "⚠️ Phone number must be exactly 10 digits.");
+//       highlightInvalid([phone]);
+//       return;
+//     }
 
-    if (messageVal.length < 5) {
-      showMessage(formMessage, "⚠️ Message must be at least 5 characters.");
-      highlightInvalid([message]);
-      return;
-    }
+//     if (messageVal.length < 5) {
+//       showMessage(formMessage, "⚠️ Message must be at least 5 characters.");
+//       highlightInvalid([message]);
+//       return;
+//     }
 
-    showMessage(formMessage, "✅ Form submitted successfully!", "green");
-    form.reset();
-  });
-}
+//     showMessage(formMessage, "✅ Form submitted successfully!", "green");
+//     form.reset();
+//   });
+// }
 
-/* =========================================================
-   Attach validation to all forms
-   ========================================================= */
-const formsToValidate = [
-  "contactForm",
-  "familyContactForm",
-  "corporateContactForm",
-  "civilContactForm",
-  "criminalContactForm",
-  "legalContactForm"
-];
+// /* =========================================================
+//    Attach validation to all forms
+//    ========================================================= */
+// const formsToValidate = [
+//   "contactForm",
+//   "familyContactForm",
+//   "corporateContactForm",
+//   "civilContactForm",
+//   "criminalContactForm",
+//   "legalContactForm"
+// ];
 
-formsToValidate.forEach(formId => handleFormValidation(formId));
+// formsToValidate.forEach(formId => handleFormValidation(formId));
 
 
 /* =========================================================
@@ -223,7 +223,6 @@ formsToValidate.forEach(formId => handleFormValidation(formId));
 //       if (!val) emptyCells.push(idx);
 //     });
 //     if (emptyCells.length === 0) return;
-
 //     const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
 //     gameState[move] = "O";
 //     cells[move].textContent = "O";
@@ -483,4 +482,51 @@ document.addEventListener("DOMContentLoaded", () => {
     hamburger.addEventListener("click", () => {
         navbar.classList.toggle("show");
     });
+});
+
+
+const API_BASE = "https://86isfklr9k.execute-api.ap-south-1.amazonaws.com";
+
+const FORM_IDS = [
+  "contactForm",
+  "civilContactForm",
+  "corporateContactForm",
+  "criminalContactForm",
+  "familyContactForm",
+  "legalContactForm"
+];
+
+function attachFormHandler(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      form_id: form.elements["form_id"]?.value || formId,
+      name: form.elements["name"]?.value || "",
+      email: form.elements["email"]?.value || "",
+      phone: form.elements["phone"]?.value || "",
+      message: form.elements["message"]?.value || "",
+      country_code: form.elements["country-code"]?.value || ""
+    };
+
+    const res = await fetch(`${API_BASE}/forms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      alert("Form submitted successfully!");
+      form.reset();
+    } else {
+      alert("Error submitting form.");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  FORM_IDS.forEach(attachFormHandler);
 });
