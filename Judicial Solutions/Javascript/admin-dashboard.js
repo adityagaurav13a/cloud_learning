@@ -3,39 +3,20 @@
 // Backend API base (API Gateway)
 const API_BASE = "https://86isfklr9k.execute-api.ap-south-1.amazonaws.com";
 
-
 // Protect this page using the demo auth (from admin-auth.js)
 if (typeof requireAdminAuth === "function") {
   requireAdminAuth();
 }
 
-// ---- Appointments data (in-memory demo) ----
-let appointments = [
-  {
-    client: "Sanjay Patel",
-    type: "Corporate",
-    datetime: "2025-11-27T11:00",
-    mode: "In person",
-    status: "Confirmed",
-  },
-  {
-    client: "Neha Gupta",
-    type: "Family",
-    datetime: "2025-11-27T16:30",
-    mode: "Video",
-    status: "Pending",
-  },
-  {
-    client: "Vikas Singh",
-    type: "Criminal",
-    datetime: "2025-11-28T10:00",
-    mode: "Phone",
-    status: "Confirmed",
-  },
-];
+// ---- Appointments data (loaded from API) ----
+let appointments = [];
+let editingAppointmentId = null; // null = create, not edit
 
+// Chart + saved cases state
 let leadsAppointmentsChart = null;
 let caseTypeChart = null;
+let savedCases = [];
+
 
 function formatAppointmentDate(raw) {
   if (!raw) return "";
@@ -56,7 +37,177 @@ function formatAppointmentDate(raw) {
   return `${datePart}, ${timePart}`;
 }
 
-// ========== Leads: fetch from backend ==========
+// ========== Appointments: stats + chart (Step 6) ==========
+
+function updateAppointmentsStatsFromList() {
+  const card = document.getElementById("stat-appointments");
+  if (!card) return;
+
+  // Today at midnight
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 6 days before today (so total window = 7 days)
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 6);
+
+  let count = 0;
+
+  for (const appt of appointments) {
+    if (!appt.datetime) continue;
+
+    const d = new Date(appt.datetime);
+    if (Number.isNaN(d.getTime())) continue;
+
+    // Compare by date only (ignore time of day + timezone noise)
+    d.setHours(0, 0, 0, 0);
+
+    if (d >= sevenDaysAgo && d <= today) {
+      count++;
+    }
+  }
+
+  card.textContent = count;
+}
+
+
+function formatAppointmentDate(raw) {
+  if (!raw) return "";
+  if (raw.includes(",")) return raw;
+
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+
+  const datePart = d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+  });
+  const timePart = d.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${datePart}, ${timePart}`;
+}
+
+// ========== Appointments: stats + chart (Step 6) ==========
+
+function updateAppointmentsStatsFromList() {
+  const card = document.getElementById("stat-appointments");
+  if (!card) return;
+  card.textContent = appointments.length;   // total, not 7-day window
+
+  const now = new Date();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(now.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  let count = 0;
+
+  for (const appt of appointments) {
+    if (!appt.datetime) continue;
+    const d = new Date(appt.datetime);
+    if (Number.isNaN(d.getTime())) continue;
+    if (d >= sevenDaysAgo && d <= now) count++;
+  }
+
+  card.textContent = count;
+}
+
+function updateAppointmentsChartFromList() {
+  if (!leadsAppointmentsChart) return;
+
+  const counts = new Array(7).fill(0); // Day -6 ... Today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  for (const appt of appointments) {
+    if (!appt.datetime) continue;
+    const d = new Date(appt.datetime);
+    if (Number.isNaN(d.getTime())) continue;
+
+    d.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - d) / MS_PER_DAY);
+
+    if (diffDays >= 0 && diffDays <= 6) {
+      const idx = 6 - diffDays; // 6 = today, 0 = 6 days ago
+      counts[idx]++;
+    }
+  }
+
+  leadsAppointmentsChart.data.datasets[1].data = counts;
+  leadsAppointmentsChart.update();
+}
+
+// ========== Saved Cases: API + UI helpers (Step 7A) ==========
+
+async function fetchCases() {
+  try {
+    const res = await fetch(`${API_BASE}/cases`);
+    if (!res.ok) {
+      console.error("Failed to fetch cases", res.status);
+      return [];
+    }
+    const data = await res.json();
+    return data.items || [];
+  } catch (err) {
+    console.error("Error fetching cases:", err);
+    return [];
+  }
+}
+
+function updateSavedCasesStat(cases) {
+  const el = document.getElementById("stat-cases");
+  if (!el) return;
+  el.textContent = cases.length;
+}
+
+function updateSavedCasesTable(cases) {
+  const body = document.getElementById("saved-cases-body");
+  if (!body) return;
+
+  const sorted = [...cases].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+
+  body.innerHTML = sorted
+    .map((c) => {
+      const title = c.title || "Untitled case";
+      const court = c.court || c.court_name || "-";
+      const date = (c.date || c.judgment_date || "").toString().slice(0, 10);
+      const tagsArr = Array.isArray(c.tags) ? c.tags : [];
+      const tagsHtml = tagsArr
+        .map((t) => `<span class="badge bg-secondary me-1">${t}</span>`)
+        .join("");
+
+      return `
+        <tr>
+          <td>${title}</td>
+          <td>${court}</td>
+          <td>${date}</td>
+          <td>${tagsHtml}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1">Open</button>
+            <button class="btn btn-sm btn-outline-danger">Remove</button>
+          </td>
+        </tr>`;
+    })
+    .join("");
+}
+
+async function loadSavedCasesFromApi() {
+  const items = await fetchCases();
+  savedCases = items || [];
+  updateSavedCasesStat(savedCases);
+  updateSavedCasesTable(savedCases);
+}
+
+// ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
+async function fetchForms() {
+  // ... your existing leads functions continue here
+}
+
+
 
 // ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
 
@@ -285,6 +436,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // override dummy leads with real data
   loadDashboardData();
+
+  // Appointments: real backend data (Step 6 finished)
+  loadAppointmentsFromApi()
+
+  // Hook appointment form + table actions
+  setupAppointmentForm();
+  setupAppointmentTableActions();
+
+  // When clicking "Add manual appointment", reset to create mode
+  const addBtn = document.getElementById("addAppointmentBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      editingAppointmentId = null;
+
+      const form = document.getElementById("appointment-form");
+      if (form) form.reset();
+      const statusSelect = document.getElementById("appointment-status");
+      if (statusSelect) statusSelect.value = "Pending";
+
+      const title = document.getElementById("appointmentModalLabel");
+      if (title) title.textContent = "Add Manual Appointment";
+
+      if (form) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.textContent = "Save appointment";
+      }
+    });
+  }
+
+  // Saved cases: real backend data (Step 7A)
+  loadSavedCasesFromApi();
 });
 
 /* ========== Sidebar Navigation ========== */
@@ -363,7 +545,6 @@ function populateDummyData() {
   // Appointments: full table + dashboard preview + form handling
   renderAppointmentsTable();
   renderAppointmentsPreview();
-  setupAppointmentForm();
 
   // Services table
   const servicesTableBody = document.getElementById("services-table-body");
@@ -522,65 +703,121 @@ function populateDummyData() {
       )
       .join("");
   }
-
-  // Saved cases table (placeholder)
-  const savedCasesBody = document.getElementById("saved-cases-body");
-  if (savedCasesBody) {
-    const cases = [
-      {
-        title: "ABC vs State of X (2020)",
-        court: "Supreme Court of India",
-        date: "2020-03-15",
-        tags: ["Criminal", "Bail"],
-      },
-      {
-        title: "XYZ Pvt Ltd vs PQR Traders (2018)",
-        court: "Delhi High Court",
-        date: "2018-09-22",
-        tags: ["Civil", "Contract"],
-      },
-    ];
-    savedCasesBody.innerHTML = cases
-      .map(
-        (c) => `
-      <tr>
-        <td>${c.title}</td>
-        <td>${c.court}</td>
-        <td>${c.date}</td>
-        <td>${c.tags.map((t) => `<span class="badge bg-secondary me-1">${t}</span>`).join("")}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-outline-primary me-1">Open</button>
-          <button class="btn btn-sm btn-outline-danger">Remove</button>
-        </td>
-      </tr>`
-      )
-      .join("");
-  }
 }
 
 /* ========== Appointments helpers ========== */
+
+// ========== Appointments: API helpers ==========
+
+async function fetchAppointments() {
+  try {
+    const res = await fetch(`${API_BASE}/appointments`);
+    if (!res.ok) {
+      console.error("Failed to fetch appointments", res.status);
+      return [];
+    }
+    const data = await res.json();
+    return data.items || [];
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
+    return [];
+  }
+}
+
+async function createAppointment(payload) {
+  try {
+    const res = await fetch(`${API_BASE}/appointments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Failed to create appointment", res.status, data);
+      alert("Error saving appointment.");
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Network error creating appointment", err);
+    alert("Error saving appointment.");
+    return null;
+  }
+}
+
+async function updateAppointment(id, updates) {
+  try {
+    const res = await fetch(`${API_BASE}/appointments/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Failed to update appointment", res.status, data);
+      alert("Error updating appointment.");
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Network error updating appointment", err);
+    alert("Error updating appointment.");
+    return null;
+  }
+}
+
+async function deleteAppointment(id) {
+  try {
+    const res = await fetch(`${API_BASE}/appointments/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok && res.status !== 204) {
+      console.error("Failed to delete appointment", res.status);
+      alert("Error deleting appointment.");
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Network error deleting appointment", err);
+    alert("Error deleting appointment.");
+    return false;
+  }
+}
+
+async function loadAppointmentsFromApi() {
+  const items = await fetchAppointments();
+  appointments = items || [];
+
+  renderAppointmentsTable();
+  renderAppointmentsPreview();
+  updateAppointmentsStatsFromList();
+  updateAppointmentsChartFromList();
+}
+
 
 function renderAppointmentsTable() {
   const tbody = document.getElementById("appointments-table-body");
   if (!tbody) return;
 
   tbody.innerHTML = appointments
-    .map(
-      (a) => `
-    <tr>
-      <td>${a.client}</td>
-      <td>${a.type}</td>
-      <td>${formatAppointmentDate(a.datetime)}</td>
-      <td>${a.mode}</td>
-      <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
-      <td class="text-end">
-        <button class="btn btn-sm btn-outline-primary me-1">Details</button>
-        <button class="btn btn-sm btn-outline-secondary">Reschedule</button>
-      </td>
-    </tr>`
-    )
+    .map((a) => {
+      const caseType = a.case_type || a.type || "General";
+      return `
+        <tr>
+          <td>${a.client}</td>
+          <td>${caseType}</td>
+          <td>${formatAppointmentDate(a.datetime)}</td>
+          <td>${a.mode}</td>
+          <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1 btn-appointment-edit" data-id="${a.id}">Reschedule</button>
+            <button class="btn btn-sm btn-outline-danger btn-appointment-delete" data-id="${a.id}">Delete</button>
+          </td>
+        </tr>`;
+    })
     .join("");
 }
+
 
 function renderAppointmentsPreview() {
   const tbody = document.getElementById("upcoming-appointments-body");
@@ -589,23 +826,82 @@ function renderAppointmentsPreview() {
   const upcoming = appointments.slice(0, 3);
 
   tbody.innerHTML = upcoming
-    .map(
-      (a) => `
+    .map((a) => {
+      const caseType = a.case_type || a.type || "General";
+      return `
     <tr>
       <td>${a.client}</td>
-      <td>${a.type}</td>
+      <td>${caseType}</td>
       <td>${formatAppointmentDate(a.datetime)}</td>
+      <td>${a.mode}</td>
       <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
     </tr>`
-    )
+    })
     .join("");
+}
+
+function setupAppointmentTableActions() {
+  const tbody = document.getElementById("appointments-table-body");
+  if (!tbody) return;
+
+  tbody.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".btn-appointment-edit");
+    const deleteBtn = e.target.closest(".btn-appointment-delete");
+
+    if (editBtn) {
+      const id = editBtn.getAttribute("data-id");
+      openEditAppointment(id);
+    } else if (deleteBtn) {
+      const id = deleteBtn.getAttribute("data-id");
+      if (!id) return;
+      const ok = confirm("Delete this appointment?");
+      if (!ok) return;
+
+      const success = await deleteAppointment(id);
+      if (!success) return;
+
+      appointments = appointments.filter((a) => a.id !== id);
+      renderAppointmentsTable();
+      renderAppointmentsPreview();
+      updateAppointmentsStatsFromList();
+      updateAppointmentsChartFromList();
+    }
+  });
+}
+
+function openEditAppointment(id) {
+  const appt = appointments.find((a) => a.id === id);
+  if (!appt) return;
+
+  editingAppointmentId = id;
+
+  const form = document.getElementById("appointment-form");
+  if (!form) return;
+
+  document.getElementById("appointment-client").value = appt.client || "";
+  document.getElementById("appointment-type").value =
+    appt.case_type || appt.type || "";
+  document.getElementById("appointment-datetime").value = appt.datetime || "";
+  document.getElementById("appointment-mode").value = appt.mode || "In person";
+  document.getElementById("appointment-status").value =
+    appt.status || "Pending";
+
+  const title = document.getElementById("appointmentModalLabel");
+  if (title) title.textContent = "Edit / Reschedule Appointment";
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  if (submitBtn) submitBtn.textContent = "Update appointment";
+
+  const modalEl = document.getElementById("appointmentModal");
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
 }
 
 function setupAppointmentForm() {
   const form = document.getElementById("appointment-form");
   if (!form) return;
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const client = document.getElementById("appointment-client").value.trim();
@@ -618,31 +914,55 @@ function setupAppointmentForm() {
       return;
     }
 
-    const prettyDate = formatAppointmentDate(datetimeRaw);
-
-    // Add new appointment at the start
-    appointments.unshift({
+    const payload = {
       client,
-      type,
-      datetime: prettyDate,
+      case_type: type,
+      datetime: datetimeRaw,
       mode,
       status,
-    });
+    };
 
-    // Re-render tables
+    let result = null;
+
+    if (editingAppointmentId) {
+      // UPDATE
+      result = await updateAppointment(editingAppointmentId, payload);
+      if (!result) return;
+
+      // replace in local list
+      appointments = appointments.map((a) =>
+        a.id === editingAppointmentId ? { ...a, ...result } : a
+      );
+    } else {
+      // CREATE
+      result = await createAppointment(payload);
+      if (!result) return;
+
+      appointments.unshift(result);
+    }
+
     renderAppointmentsTable();
     renderAppointmentsPreview();
+    updateAppointmentsStatsFromList();
+    updateAppointmentsChartFromList();
 
-    // Reset form & default status
+    // Reset edit mode
+    editingAppointmentId = null;
     form.reset();
     document.getElementById("appointment-status").value = "Pending";
 
-    // Close modal
+    const title = document.getElementById("appointmentModalLabel");
+    if (title) title.textContent = "Add Manual Appointment";
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = "Save appointment";
+
     const modalEl = document.getElementById("appointmentModal");
     const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
   });
 }
+
 
 /* ========== Status badge color helper ========== */
 function statusColor(status) {
@@ -679,7 +999,7 @@ if (leadsCanvas && window.Chart) {
         },
         {
           label: "Appointments",
-          data: [1, 2, 1, 3, 2, 2, 4],  // still demo for now
+          data: [0, 0, 0, 0, 0, 0, 0], // will be filled from appointments list
           tension: 0.4,
         },
       ],
