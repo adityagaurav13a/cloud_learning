@@ -1,5 +1,8 @@
 // Javascript/admin-dashboard.js
 
+const API_BASE = "https://86isfklr9k.execute-api.ap-south-1.amazonaws.com";
+
+
 // Protect this page using the demo auth (from admin-auth.js)
 if (typeof requireAdminAuth === "function") {
   requireAdminAuth();
@@ -49,12 +52,133 @@ function formatAppointmentDate(raw) {
   return `${datePart}, ${timePart}`;
 }
 
+// ========== Leads: fetch from backend ==========
+
+async function fetchForms() {
+  try {
+    const res = await fetch(`${API_BASE}/forms`);
+    if (!res.ok) {
+      console.error("Failed to fetch forms", res.status);
+      return [];
+    }
+    const data = await res.json();
+    return data.items || [];
+  } catch (err) {
+    console.error("Error fetching forms:", err);
+    return [];
+  }
+}
+
+function formatDateShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+}
+
+function formatDateTimeReadable(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  const time = d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  return `${date}, ${time}`;
+}
+
+// card: New Leads (7 days)
+function updateLeadStatsFromForms(forms) {
+  const now = new Date();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(now.getDate() - 6);
+
+  let count = 0;
+  for (const f of forms) {
+    if (!f.created_at) continue;
+    const d = new Date(f.created_at);
+    if (Number.isNaN(d.getTime())) continue;
+    if (d >= sevenDaysAgo && d <= now) count++;
+  }
+
+  const el = document.getElementById("stat-leads");
+  if (el) el.textContent = count;
+}
+
+// dashboard: Recent Leads table (left)
+function updateRecentLeadsTable(forms) {
+  const body = document.getElementById("recent-leads-body");
+  if (!body) return;
+
+  // sort newest first and take top 5
+  const sorted = [...forms].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+  const top = sorted.slice(0, 5);
+
+  body.innerHTML = top
+    .map((f) => {
+      const name = f.name || "Unknown";
+      const type = f.case_type || "General";
+      const date = formatDateShort(f.created_at);
+      const status = f.read ? "Closed" : "New";
+      return `
+        <tr>
+          <td>${name}</td>
+          <td>${type}</td>
+          <td>${date}</td>
+          <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
+        </tr>`;
+    })
+    .join("");
+}
+
+// Leads section: full table
+function updateLeadsSectionTable(forms) {
+  const body = document.getElementById("leads-table-body");
+  if (!body) return;
+
+  const sorted = [...forms].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  );
+
+  body.innerHTML = sorted
+    .map((f, idx) => {
+      const status = f.read ? "Closed" : "New";
+      const caseType = f.case_type || "General";
+      return `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${f.name || "-"}</td>
+          <td>${f.email || "-"}</td>
+          <td>${f.phone || "-"}</td>
+          <td>${caseType}</td>
+          <td>${formatDateTimeReadable(f.created_at)}</td>
+          <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary me-1">View</button>
+            <button class="btn btn-sm btn-outline-secondary">Note</button>
+          </td>
+        </tr>`;
+    })
+    .join("");
+}
+
+async function loadDashboardData() {
+  const forms = await fetchForms();
+  updateLeadStatsFromForms(forms);
+  updateRecentLeadsTable(forms);
+  updateLeadsSectionTable(forms);
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
   setupSidebarNavigation();
   setupSidebarToggle();
   populateDummyData();
   initCharts();
   setupCaseSearchMock();
+
+  // override dummy leads with real data
+  loadDashboardData();
 });
 
 /* ========== Sidebar Navigation ========== */
