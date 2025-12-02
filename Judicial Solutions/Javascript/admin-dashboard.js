@@ -34,6 +34,9 @@ let appointments = [
   },
 ];
 
+let leadsAppointmentsChart = null;
+let caseTypeChart = null;
+
 function formatAppointmentDate(raw) {
   if (!raw) return "";
   // If already formatted like "27 Nov, 11:00 AM", just return
@@ -101,6 +104,8 @@ async function loadDashboardData() {
   updateLeadStatsFromForms(forms);
   updateRecentLeadsTable(forms);
   updateLeadsSectionTable(forms);
+  updateLeadsChartFromForms(forms);
+  updateCaseTypeChartFromForms(forms);
 }
 
 function formatDateShort(iso) {
@@ -108,6 +113,25 @@ function formatDateShort(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+}
+
+function getCaseTypeFromForm(item) {
+  if (!item) return "General";
+
+  // Prefer explicit fields if you add them later
+  const explicit = (item.case_type || item.caseType || item.type || "").toString().toLowerCase();
+
+  // Fallback to form_id (civil-cases, criminal-defense, etc.)
+  const source = explicit || (item.form_id || "").toString().toLowerCase();
+
+  if (source.includes("civil")) return "Civil";
+  if (source.includes("criminal")) return "Criminal";
+  if (source.includes("family")) return "Family";
+  if (source.includes("corporate")) return "Corporate";
+  if (source.includes("legalcontactform") || source.includes("legalcontact"))
+    return "Legal";
+
+  return "General"; // contact-index, legalContactForm, etc.
 }
 
 function formatDateTimeReadable(iso) {
@@ -138,7 +162,8 @@ function updateLeadsSectionTable(forms) {
   body.innerHTML = sorted
     .map((f, idx) => {
       const status = f.read ? "Closed" : "New";
-      const caseType = f.case_type || "General";
+      // const caseType = f.case_type || "General";
+      const caseType = getCaseTypeFromForm(f);
       return `
         <tr>
           <td>${idx + 1}</td>
@@ -157,6 +182,67 @@ function updateLeadsSectionTable(forms) {
     .join("");
 }
 
+// Update line chart "Leads" dataset from real forms (last 7 days)
+function updateLeadsChartFromForms(forms) {
+  if (!leadsAppointmentsChart) return;
+
+  const counts = new Array(7).fill(0); // [Day-6 ... Today]
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  for (const item of forms) {
+    if (!item.created_at) continue;
+
+    const d = new Date(item.created_at);
+    if (Number.isNaN(d.getTime())) continue;
+
+    d.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - d) / MS_PER_DAY);
+
+    // 0 = today, 1 = yesterday, ... 6 = 6 days ago
+    if (diffDays >= 0 && diffDays <= 6) {
+      const idx = 6 - diffDays; // index 6 = today, 0 = 6 days ago
+      counts[idx]++;
+    }
+  }
+
+  leadsAppointmentsChart.data.datasets[0].data = counts;
+  leadsAppointmentsChart.update();
+}
+
+// Update donut chart from real form case types
+function updateCaseTypeChartFromForms(forms) {
+  if (!caseTypeChart) return;
+
+  const counts = {
+    Civil: 0,
+    Criminal: 0,
+    Family: 0,
+    Corporate: 0,
+    Legal: 0,
+    General: 0,
+  };
+
+  for (const f of forms) {
+    const type = getCaseTypeFromForm(f);
+    counts[type] = (counts[type] || 0) + 1;
+  }
+
+  caseTypeChart.data.datasets[0].data = [
+    counts.Civil,
+    counts.Criminal,
+    counts.Family,
+    counts.Corporate,
+    counts.Legal,
+    counts.General,
+  ];
+
+  caseTypeChart.update();
+}
+
+
 // Dashboard: Recent Leads table (left small table)
 function updateRecentLeadsTable(forms) {
   const body = document.getElementById("recent-leads-body");
@@ -171,7 +257,8 @@ function updateRecentLeadsTable(forms) {
   body.innerHTML = top
     .map((f) => {
       const name = f.name || "Unknown";
-      const type = f.case_type || "General";
+      // const type = f.case_type || "General";
+      const type = getCaseTypeFromForm(f);
       const date = formatDateShort(f.created_at);
       const status = f.read ? "Closed" : "New";
       return `
@@ -579,24 +666,24 @@ function statusColor(status) {
 /* ========== Charts ========== */
 function initCharts() {
   const leadsCanvas = document.getElementById("leadsAppointmentsChart");
-  if (leadsCanvas && window.Chart) {
-    new Chart(leadsCanvas, {
-      type: "line",
-      data: {
-        labels: ["Day -6", "Day -5", "Day -4", "Day -3", "Day -2", "Day -1", "Today"],
-        datasets: [
-          {
-            label: "Leads",
-            data: [2, 4, 3, 5, 4, 3, 7],
-            tension: 0.4,
-          },
-          {
-            label: "Appointments",
-            data: [1, 2, 1, 3, 2, 2, 4],
-            tension: 0.4,
-          },
-        ],
-      },
+if (leadsCanvas && window.Chart) {
+  leadsAppointmentsChart = new Chart(leadsCanvas, {
+    type: "line",
+    data: {
+      labels: ["Day -6", "Day -5", "Day -4", "Day -3", "Day -2", "Day -1", "Today"],
+      datasets: [
+        {
+          label: "Leads",
+          data: [0, 0, 0, 0, 0, 0, 0],   // will be replaced with real data
+          tension: 0.4,
+        },
+        {
+          label: "Appointments",
+          data: [1, 2, 1, 3, 2, 2, 4],  // still demo for now
+          tension: 0.4,
+        },
+      ],
+    },
       options: {
         responsive: true,
         plugins: {
@@ -623,13 +710,13 @@ function initCharts() {
 
   const caseTypeCanvas = document.getElementById("caseTypeChart");
   if (caseTypeCanvas && window.Chart) {
-    new Chart(caseTypeCanvas, {
+    caseTypeChart = new Chart(caseTypeCanvas, {
       type: "doughnut",
       data: {
-        labels: ["Civil", "Criminal", "Family", "Corporate"],
+        labels: ["Civil", "Criminal", "Family", "Corporate", "Legal", "General"],
         datasets: [
           {
-            data: [40, 25, 20, 15],
+            data: [0, 0, 0, 0, 0, 0], // will be filled from real data
           },
         ],
       },
@@ -664,6 +751,8 @@ function setupCaseSearchMock() {
       updateLeadStatsFromForms(forms);
       updateRecentLeadsTable(forms);
       updateLeadsSectionTable(forms);
+      updateLeadsChartFromForms(forms);
+      updateCaseTypeChartFromForms(forms);
 
       refreshBtn.disabled = false;
       refreshBtn.innerHTML =
