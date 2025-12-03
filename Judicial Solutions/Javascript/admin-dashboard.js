@@ -15,9 +15,16 @@ let editingAppointmentId = null; // null = create, not edit
 // Chart + saved cases state
 let leadsAppointmentsChart = null;
 let caseTypeChart = null;
+
 let savedCases = [];
+
+// Services state
 let servicesList = [];
-let editingServiceId = null;  
+let editingServiceId = null;
+
+// Files & Templates state
+let filesCache = [];
+let editingFileId = null;
 
 
 function formatAppointmentDate(raw) {
@@ -440,6 +447,234 @@ function setupServiceTableActions() {
 }
 
 
+// ---------- Files & Templates (read only) ----------
+
+async function fetchFiles() {
+  try {
+    const res = await fetch(`${API_BASE}/files`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.items || [];
+  } catch (err) {
+    console.error("Error fetching files:", err);
+    return [];
+  }
+}
+
+function renderFilesTable(files) {
+  const tbody = document.getElementById("files-table-body");
+  if (!tbody) return;
+
+  if (!files.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center;">No files found</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = files
+    .map((file) => {
+      const title = file.title || "(no title)";
+      const type = file.type || "-";
+      const category = file.category || "-";
+      const status = file.status || "-";
+      const url = file.file_url || "#";
+
+      return `
+        <tr data-id="${file.id}">
+          <td>${title}</td>
+          <td>${type}</td>
+          <td>${category}</td>
+          <td>${status}</td>
+          <td>
+            ${file.file_url
+              ? `<a href="${url}" target="_blank" rel="noopener noreferrer">Open</a>`
+              : "-"}
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary file-edit-btn">Edit</button>
+            <button class="btn btn-sm btn-outline-danger file-delete-btn ms-1">Delete</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function loadFilesFromApi() {
+  const files = await fetchFiles();
+  filesCache = files;
+  renderFilesTable(files);
+}
+
+async function createFileApi(payload) {
+  const res = await fetch(`${API_BASE}/files`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Create file failed: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function updateFileApi(id, payload) {
+  const res = await fetch(`${API_BASE}/files/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Update file failed: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function deleteFileApi(id) {
+  const res = await fetch(`${API_BASE}/files/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 204) {
+    throw new Error(`Delete file failed: HTTP ${res.status}`);
+  }
+}
+
+
+function openFileModal(file) {
+  const titleEl = document.getElementById("fileModalLabel");
+  const form = document.getElementById("file-form");
+  const titleInput = document.getElementById("file-title");
+  const typeInput = document.getElementById("file-type");
+  const categoryInput = document.getElementById("file-category");
+  const urlInput = document.getElementById("file-url");
+  const statusInput = document.getElementById("file-status");
+  const descInput = document.getElementById("file-description");
+  const tagsInput = document.getElementById("file-tags");
+
+  if (!form) return;
+
+  if (file) {
+    editingFileId = file.id;
+    titleEl && (titleEl.textContent = "Edit File / Template");
+    titleInput.value = file.title || "";
+    typeInput.value = file.type || "template";
+    categoryInput.value = file.category || "";
+    urlInput.value = file.file_url || "";
+    statusInput.value = file.status || "active";
+    descInput.value = file.description || "";
+    tagsInput.value = (file.tags || []).join(", ");
+  } else {
+    editingFileId = null;
+    titleEl && (titleEl.textContent = "Add File / Template");
+    form.reset();
+    typeInput.value = "template";
+    statusInput.value = "active";
+  }
+
+  const modalEl = document.getElementById("fileModal");
+  if (modalEl && window.bootstrap) {
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  } else if (modalEl) {
+    modalEl.style.display = "block"; // fallback if no Bootstrap
+  }
+}
+
+function setupFileForm() {
+  const form = document.getElementById("file-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      title: document.getElementById("file-title").value.trim(),
+      type: document.getElementById("file-type").value.trim(),
+      category: document.getElementById("file-category").value.trim(),
+      file_url: document.getElementById("file-url").value.trim(),
+      status: document.getElementById("file-status").value.trim(),
+      description: document.getElementById("file-description").value.trim(),
+      tags: document
+        .getElementById("file-tags")
+        .value.split(",")
+        .map((t) => t.trim())
+        .filter((t) => t),
+    };
+
+    try {
+      if (editingFileId) {
+        await updateFileApi(editingFileId, payload);
+      } else {
+        await createFileApi(payload);
+      }
+
+      const modalEl = document.getElementById("fileModal");
+      if (modalEl && window.bootstrap) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal && modal.hide();
+      } else if (modalEl) {
+        modalEl.style.display = "none";
+      }
+
+      await loadFilesFromApi();
+    } catch (err) {
+      console.error("Error saving file:", err);
+      alert("Error saving file. See console for details.");
+    }
+  });
+}
+
+function setupFilesTableActions() {
+  const tbody = document.getElementById("files-table-body");
+  if (!tbody) return;
+
+  tbody.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".file-edit-btn");
+    const deleteBtn = e.target.closest(".file-delete-btn");
+
+    if (editBtn) {
+      const tr = editBtn.closest("tr");
+      const id = tr?.dataset.id;
+      const file = filesCache.find((f) => f.id === id);
+      if (file) openFileModal(file);
+      return;
+    }
+
+    if (deleteBtn) {
+      const tr = deleteBtn.closest("tr");
+      const id = tr?.dataset.id;
+      if (!id) return;
+
+      if (!confirm("Delete this file/template?")) return;
+
+      try {
+        await deleteFileApi(id);
+        await loadFilesFromApi();
+      } catch (err) {
+        console.error("Error deleting file:", err);
+        alert("Error deleting file. See console for details.");
+      }
+    }
+  });
+}
+
+// async function initFilesSection() {
+//   const files = await fetchFiles();
+//   renderFilesTable(files);
+// }
+async function initFilesSection() {
+  await loadFilesFromApi();
+  setupFileForm();
+
+  const addBtn = document.getElementById("addFileBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", () => openFileModal(null));
+  }
+
+  setupFilesTableActions();
+}
+
+
+
 // ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
 async function fetchForms() {
   // ... your existing leads functions continue here
@@ -718,6 +953,8 @@ document.addEventListener("DOMContentLoaded", () => {
       openServiceModal(null); // create mode
     });
   }
+
+  initFilesSection();  
 });
 
 /* ========== Sidebar Navigation ========== */
