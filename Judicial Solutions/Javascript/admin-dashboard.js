@@ -26,6 +26,9 @@ let editingServiceId = null;
 let filesCache = [];
 let editingFileId = null;
 
+let filesLastToken = null;
+const FILES_PAGE_SIZE = 50;
+
 
 function formatAppointmentDate(raw) {
   if (!raw) return "";
@@ -147,6 +150,39 @@ function updateAppointmentsChartFromList() {
   leadsAppointmentsChart.data.datasets[1].data = counts;
   leadsAppointmentsChart.update();
 }
+
+function applyFilesFilters() {
+  const typeFilter = document.getElementById("file-type-filter");
+  const statusFilter = document.getElementById("file-status-filter");
+  const searchInput = document.getElementById("file-search");
+
+  const type = (typeFilter?.value || "").trim().toLowerCase();
+  const status = (statusFilter?.value || "").trim().toLowerCase();
+  const q = (searchInput?.value || "").trim().toLowerCase();
+
+  let filtered = [...filesCache];
+
+  if (type) {
+    filtered = filtered.filter((f) => (f.type || "").toLowerCase() === type);
+  }
+  if (status) {
+    filtered = filtered.filter((f) => (f.status || "").toLowerCase() === status);
+  }
+  if (q) {
+    filtered = filtered.filter((f) =>
+      (f.title || "").toLowerCase().includes(q)
+    );
+  }
+
+  renderFilesTable(filtered);
+}
+
+function updateFilesPaginationControls() {
+  const btn = document.getElementById("filesLoadMoreBtn");
+  if (!btn) return;
+  btn.style.display = filesLastToken ? "inline-block" : "none";
+}
+
 
 // ========== Saved Cases: API + UI helpers (Step 7A) ==========
 
@@ -449,11 +485,18 @@ function setupServiceTableActions() {
 
 // ---------- Files & Templates (read only) ----------
 
-async function fetchFiles() {
+async function fetchFiles(cursor = null) {
   try {
-    const res = await fetch(`${API_BASE}/files`);
+    const params = new URLSearchParams();
+    params.set("limit", FILES_PAGE_SIZE.toString());
+    if (cursor) params.set("last", cursor);
+
+    const url = `${API_BASE}/files?${params.toString()}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+
+    filesLastToken = data.last || null;
     return data.items || [];
   } catch (err) {
     console.error("Error fetching files:", err);
@@ -503,10 +546,17 @@ function renderFilesTable(files) {
     .join("");
 }
 
-async function loadFilesFromApi() {
-  const files = await fetchFiles();
-  filesCache = files;
-  renderFilesTable(files);
+async function loadFilesFromApi(reset = true) {
+  if (reset) {
+    filesCache = [];
+    filesLastToken = null;
+  }
+
+  const newItems = await fetchFiles(filesLastToken);
+  filesCache = [...filesCache, ...newItems];
+
+  applyFilesFilters();
+  updateFilesPaginationControls();
 }
 
 async function createFileApi(payload) {
@@ -583,24 +633,62 @@ function setupFileForm() {
   const form = document.getElementById("file-form");
   if (!form) return;
 
-  form.addEventListener("submit", async (e) => {
+    form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const payload = {
-      title: document.getElementById("file-title").value.trim(),
-      type: document.getElementById("file-type").value.trim(),
-      category: document.getElementById("file-category").value.trim(),
-      file_url: document.getElementById("file-url").value.trim(),
-      status: document.getElementById("file-status").value.trim(),
-      description: document.getElementById("file-description").value.trim(),
-      tags: document
-        .getElementById("file-tags")
-        .value.split(",")
-        .map((t) => t.trim())
-        .filter((t) => t),
-    };
+    const fileInput = document.getElementById("file-upload");
+    const selectedFile = fileInput?.files?.[0] || null;
+
+    let fileUrl = document.getElementById("file-url").value.trim();
+    
+    // debugging logs
+    console.log("selectedFile =", selectedFile);
+    console.log("initial fileUrl =", fileUrl);
 
     try {
+      // 1) If a file is selected, upload to S3 via presigned URL
+      if (selectedFile) {
+        const presignRes = await fetch(`${API_BASE}/files/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: selectedFile.name,
+            content_type: selectedFile.type || "application/octet-stream",
+          }),
+        });
+
+        if (!presignRes.ok) {
+          throw new Error(`Presign failed: HTTP ${presignRes.status}`);
+        }
+        const presignData = await presignRes.json();
+
+        await fetch(presignData.upload_url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": selectedFile.type || "application/octet-stream",
+          },
+          body: selectedFile,
+        });
+
+        fileUrl = presignData.file_url;
+        document.getElementById("file-url").value = fileUrl;
+      }
+
+      // 2) Build payload
+      const payload = {
+        title: document.getElementById("file-title").value.trim(),
+        type: document.getElementById("file-type").value.trim(),
+        category: document.getElementById("file-category").value.trim(),
+        file_url: fileUrl,
+        status: document.getElementById("file-status").value.trim(),
+        description: document.getElementById("file-description").value.trim(),
+        tags: document
+          .getElementById("file-tags")
+          .value.split(",")
+          .map((t) => t.trim())
+          .filter((t) => t),
+      };
+
       if (editingFileId) {
         await updateFileApi(editingFileId, payload);
       } else {
@@ -615,10 +703,11 @@ function setupFileForm() {
         modalEl.style.display = "none";
       }
 
-      await loadFilesFromApi();
+      if (fileInput) fileInput.value = "";
+      await loadFilesFromApi(true);
     } catch (err) {
       console.error("Error saving file:", err);
-      alert("Error saving file. See console for details.");
+      alert("Error saving file / upload. See console for details.");
     }
   });
 }
@@ -662,7 +751,7 @@ function setupFilesTableActions() {
 //   renderFilesTable(files);
 // }
 async function initFilesSection() {
-  await loadFilesFromApi();
+  await loadFilesFromApi(true);
   setupFileForm();
 
   const addBtn = document.getElementById("addFileBtn");
@@ -671,6 +760,21 @@ async function initFilesSection() {
   }
 
   setupFilesTableActions();
+
+  const typeFilter = document.getElementById("file-type-filter");
+  const statusFilter = document.getElementById("file-status-filter");
+  const searchInput = document.getElementById("file-search");
+  const loadMoreBtn = document.getElementById("filesLoadMoreBtn");
+
+  [typeFilter, statusFilter].forEach((el) => {
+    if (el) el.addEventListener("change", applyFilesFilters);
+  });
+  if (searchInput) {
+    searchInput.addEventListener("input", applyFilesFilters);
+  }
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => loadFilesFromApi(false));
+  }
 }
 
 
