@@ -88,21 +88,22 @@
   <section id="contact" class="contact">
     <h2>Contact Our Corporate Team</h2>
     <form id="corporateContactForm">
-      <input type="hidden" name="form_id" value="corporate-law">
-      <input type="text" id="name" placeholder="Your Name" required>
-      <div class="phone-group">
-        <select id="countryCode">
-          <option value="+91">+91</option>
-          <option value="+1">+1</option>
-          <option value="+44">+44</option>
-        </select>
-        <input type="tel" id="phone" placeholder="Phone Number" required>
-      </div>
-      <input type="email" id="email" placeholder="Email (e.g. yourname@gmail.com)" required>
-      <textarea id="message" placeholder="Your Message" rows="4" required></textarea>
-      <div id="formMessage" style="margin-bottom:15px; font-weight:bold;"></div>
-      <button type="submit" class="btn">Send Message</button>
-    </form>
+  <input type="hidden" name="form_id" value="corporate-law">
+  <input type="text" id="name" name="name" placeholder="Your Name" required>
+  <div class="phone-group">
+    <select id="countryCode" name="country-code">
+      <option value="+91">+91</option>
+      <option value="+1">+1</option>
+      <option value="+44">+44</option>
+    </select>
+    <input type="tel" id="phone" name="phone" placeholder="Phone Number" required>
+  </div>
+  <input type="email" id="email" name="email" placeholder="Email (e.g. yourname@gmail.com)" required>
+  <textarea id="message" name="message" placeholder="Your Message" rows="4" required></textarea>
+  <div id="formMessage" style="margin-bottom:15px; font-weight:bold;"></div>
+  <button type="submit" class="btn">Send Message</button>
+</form>
+
   </section>
 
   <!-- Footer -->
@@ -110,7 +111,7 @@
     <p>© 2025 Judicial Solutions | Justice with Integrity</p>
   </footer>
   
-  <script src="family-disputes.js"></script>
+  <script src="./Javascript/script.js"></script>
 
 </body>
 </html>
