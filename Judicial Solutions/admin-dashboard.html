@@ -529,6 +529,28 @@
                     </button>
                 </div>
 
+                <div class="d-flex gap-2 mb-2">
+                <select id="file-type-filter" class="form-select form-select-sm" style="max-width: 160px;">
+                    <option value="">All types</option>
+                    <option value="template">Template</option>
+                    <option value="form">Form</option>
+                    <option value="misc">Misc</option>
+                </select>
+
+                <select id="file-status-filter" class="form-select form-select-sm" style="max-width: 160px;">
+                    <option value="">All status</option>
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                </select>
+
+                <input
+                    type="text"
+                    id="file-search"
+                    class="form-control form-control-sm"
+                    placeholder="Search by title..."
+                />
+                </div>
+
                 <table class="admin-table">
                     <thead>
                     <tr>
@@ -544,6 +566,13 @@
                     <!-- JS -->
                     </tbody>
                 </table>
+
+                <div class="mt-2 text-center">
+                <button id="filesLoadMoreBtn" class="btn btn-outline-secondary btn-sm" style="display:none;">
+                    Load more
+                </button>
+                </div>
+
                 </section>
 
                 <!-- Files & Templates Modal -->
@@ -577,8 +606,16 @@
                         </div>
 
                         <div class="mb-3">
+                        <label class="form-label">Upload file</label>
+                        <input type="file" id="file-upload" class="form-control" />
+                        <small class="text-muted">
+                            If you upload a file, it will be stored in S3 and the URL will be filled automatically.
+                        </small>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label">File URL</label>
-                            <input type="url" id="file-url" class="form-control" required />
+                            <input type="url" id="file-url" class="form-control" />
                         </div>
 
                         <div class="mb-3">
