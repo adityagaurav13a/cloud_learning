@@ -493,7 +493,8 @@
                             <p class="text-muted mb-0">Control which services appear on the public website.</p>
                         </div>
                         <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                            <button class="btn btn-primary btn-sm">
+                            <!-- <button class="btn btn-primary btn-sm"> -->
+                            <button class="btn btn-primary btn-sm" id="addServiceBtn">
                                 <i class="bi bi-plus-lg me-1"></i>Add service
                             </button>
                         </div>
@@ -518,6 +519,261 @@
                         </div>
                     </div>
                 </section>
+                
+                <!--=========== Files & Templates ============== -->
+                <section id="files-section" class="card">
+                <div class="card-header">
+                    <h2>Files & Templates</h2>
+                    <button id="addFileBtn" class="btn btn-primary btn-sm">
+                    + Add file / template
+                    </button>
+                </div>
+
+                <div class="d-flex gap-2 mb-2">
+                <select id="file-type-filter" class="form-select form-select-sm" style="max-width: 160px;">
+                    <option value="">All types</option>
+                    <option value="template">Template</option>
+                    <option value="form">Form</option>
+                    <option value="misc">Misc</option>
+                </select>
+
+                <select id="file-status-filter" class="form-select form-select-sm" style="max-width: 160px;">
+                    <option value="">All status</option>
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                </select>
+
+                <input
+                    type="text"
+                    id="file-search"
+                    class="form-control form-control-sm"
+                    placeholder="Search by title..."
+                />
+                </div>
+
+                <table class="admin-table">
+                    <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Link</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="files-table-body">
+                    <!-- JS -->
+                    </tbody>
+                </table>
+
+                <div class="mt-2 text-center">
+                <button id="filesLoadMoreBtn" class="btn btn-outline-secondary btn-sm" style="display:none;">
+                    Load more
+                </button>
+                </div>
+
+                </section>
+
+                <!-- Files & Templates Modal -->
+                <div class="modal fade" id="fileModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="fileModalLabel">Add File / Template</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <form id="file-form">
+                        <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" id="file-title" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <select id="file-type" class="form-select" required>
+                            <option value="template">Template</option>
+                            <option value="form">Form</option>
+                            <option value="misc">Misc</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <input type="text" id="file-category" class="form-control" placeholder="Civil / Criminal / Family / Corporate" />
+                        </div>
+
+                        <div class="mb-3">
+                        <label class="form-label">Upload file</label>
+                        <input type="file" id="file-upload" class="form-control" />
+                        <small class="text-muted">
+                            If you upload a file, it will be stored in S3 and the URL will be filled automatically.
+                        </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">File URL</label>
+                            <input type="url" id="file-url" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select id="file-status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea id="file-description" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tags (comma separated)</label>
+                            <input type="text" id="file-tags" class="form-control" placeholder="divorce, petition" />
+                        </div>
+                        </div>
+
+                        <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            Save
+                        </button>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+                </div>
+
+                <!-- Service Modal -->
+                <div class="modal fade" id="serviceModal" tabindex="-1" aria-labelledby="serviceModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="serviceModalLabel">Add Service</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="service-form">
+                        <div class="modal-body">
+                        <div class="mb-2">
+                            <label for="service-name" class="form-label small mb-1">Service name</label>
+                            <input type="text" id="service-name" class="form-control form-control-sm" required />
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="service-category" class="form-label small mb-1">Category</label>
+                            <input type="text" id="service-category" class="form-control form-control-sm"
+                            placeholder="e.g. Civil, Criminal, Family, Corporate" />
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="service-description" class="form-label small mb-1">Description (optional)</label>
+                            <textarea id="service-description" class="form-control form-control-sm" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="service-shown" checked />
+                            <label class="form-check-label small" for="service-shown">
+                            Show this service on the public website
+                            </label>
+                        </div>
+                        </div>
+                        <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save service</button>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+                </div>
+
+                 <!--=========== Post & Blogs ============== -->
+                <section id="posts-section" class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2>Blog / Updates</h2>
+                    <button id="addPostBtn" class="btn btn-primary btn-sm">+ New post</button>
+                </div>
+
+                <table class="admin-table">
+                    <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Published</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="posts-table-body">
+                    <!-- filled by JS -->
+                    </tbody>
+                </table>
+                </section>
+
+                <!-- Post & Blogs Modal -->
+                <div class="modal fade" id="postModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="postModalLabel">New Post</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <form id="post-form">
+                        <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" id="post-title" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Slug (optional)</label>
+                            <input type="text" id="post-slug" class="form-control" placeholder="e.g. mutual-consent-divorce-guide" />
+                        </div>
+
+                        <div class="mb-3 d-flex gap-2">
+                            <div class="flex-fill">
+                            <label class="form-label">Category</label>
+                            <input type="text" id="post-category" class="form-control" placeholder="Family / Civil / Criminal" />
+                            </div>
+                            <div>
+                            <label class="form-label">Status</label>
+                            <select id="post-status" class="form-select">
+                                <option value="draft">Draft</option>
+                                <option value="published">Published</option>
+                            </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Excerpt (short summary)</label>
+                            <textarea id="post-excerpt" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Content</label>
+                            <textarea id="post-content" class="form-control" rows="6"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tags (comma separated)</label>
+                            <input type="text" id="post-tags" class="form-control" placeholder="divorce, property, procedure" />
+                        </div>
+                        </div>
+
+                        <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+                </div>
 
                 <!-- ============ Case Research Section ============ -->
                 <section id="case-research-section" class="admin-section d-none">
