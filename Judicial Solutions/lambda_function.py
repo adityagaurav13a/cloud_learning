@@ -4,6 +4,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
+import decimal
 
 import boto3
 from botocore.exceptions import ClientError
@@ -20,6 +21,7 @@ TABLE_CASES = os.environ.get("TABLE_CASES", "judicial-cases")
 TABLE_MESSAGES = os.environ.get("TABLE_MESSAGES", "judicial-messages")
 TABLE_APPOINTMENTS = os.environ.get("TABLE_APPOINTMENTS", "judicial-appointments")
 TABLE_SERVICES = os.environ.get("TABLE_SERVICES", "judicial-services")
+TABLE_FILES = os.environ.get("TABLE_FILES", "judicial-files")
 
 dynamodb = boto3.resource("dynamodb")
 
@@ -29,6 +31,7 @@ TABLE_MAP = {
     "messages": dynamodb.Table(TABLE_MESSAGES),
     "appointments": dynamodb.Table(TABLE_APPOINTMENTS),
     "services": dynamodb.Table(TABLE_SERVICES),
+    "files": dynamodb.Table(TABLE_FILES),
 }
 
 # -------------------------
@@ -36,6 +39,12 @@ TABLE_MAP = {
 # -------------------------
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return float(obj)
+        return super().default(obj)
 
 def make_response(
     status: int,
@@ -50,10 +59,15 @@ def make_response(
     }
     if extra_headers:
         headers.update(extra_headers)
+    # return {
+    #     "statusCode": status,
+    #     "headers": headers,
+    #     "body": json.dumps(body) if body is not None else "",
+    # }
     return {
         "statusCode": status,
         "headers": headers,
-        "body": json.dumps(body) if body is not None else "",
+        "body": json.dumps(body, cls=EnhancedJSONEncoder) if body is not None else "",
     }
 
 def parse_json_body(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -138,6 +152,18 @@ def create_resource_item(resource: str, payload: Dict[str, Any]) -> Dict[str, An
                 "category": payload.get("category", "").strip(),
                 "description": payload.get("description", "").strip(),
                 "shown": bool(payload.get("shown", True)),
+            }
+        )
+    elif resource == "files":   # 👈 NEW
+        base.update(
+            {
+                "title": payload.get("title", "").strip(),
+                "type": payload.get("type", "").strip(),         # template/file/etc
+                "file_url": payload.get("file_url", "").strip(), # S3 or any URL
+                "description": payload.get("description", "").strip(),
+                "category": payload.get("category", "").strip(),
+                "status": payload.get("status", "active").strip(),
+                "tags": payload.get("tags", []),
             }
         )
 
@@ -279,6 +305,9 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
             if resource == "services":
                 if not payload.get("name"):
                     return make_response(400, {"error": "name required for services"})
+            if resource == "files":
+                if not payload.get("title") or not payload.get("type") or not payload.get("file_url"):
+                    return make_response(400,{"error": "title, type and file_url required for files"})
 
             created = create_resource_item(resource, payload)
             return make_response(201, created)
