@@ -26,8 +26,13 @@ let editingServiceId = null;
 let filesCache = [];
 let editingFileId = null;
 
+
 let filesLastToken = null;
 const FILES_PAGE_SIZE = 50;
+
+// Posts state
+let postsCache = [];
+let editingPostId = null;
 
 
 function formatAppointmentDate(raw) {
@@ -482,6 +487,217 @@ function setupServiceTableActions() {
   });
 }
 
+// ========== Posts: API + UI helpers (Step 9A) ==========
+async function fetchPosts() {
+  try {
+    const res = await fetch(`${API_BASE}/posts`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.items || [];
+  } catch (err) {
+    console.error("Error fetching posts:", err);
+    return [];
+  }
+}
+
+async function createPostApi(payload) {
+  const res = await fetch(`${API_BASE}/posts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Create post failed: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function updatePostApi(id, payload) {
+  const res = await fetch(`${API_BASE}/posts/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Update post failed: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function deletePostApi(id) {
+  const res = await fetch(`${API_BASE}/posts/${id}`, { method: "DELETE" });
+  if (!res.ok && res.status !== 204) {
+    throw new Error(`Delete post failed: HTTP ${res.status}`);
+  }
+}
+
+function renderPostsTable(posts) {
+  const tbody = document.getElementById("posts-table-body");
+  if (!tbody) return;
+
+  if (!posts.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align:center;">No posts yet</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = posts
+    .map((p) => {
+      const title = p.title || "(no title)";
+      const category = p.category || "-";
+      const status = p.status || "draft";
+      const publishedAt = p.published_at || "-";
+
+      return `
+        <tr data-id="${p.id}">
+          <td>${title}</td>
+          <td>${category}</td>
+          <td>${status}</td>
+          <td>${publishedAt}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary post-edit-btn">Edit</button>
+            <button class="btn btn-sm btn-outline-danger post-delete-btn ms-1">Delete</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function loadPostsFromApi() {
+  const posts = await fetchPosts();
+  postsCache = posts;
+  renderPostsTable(posts);
+}
+
+function openPostModal(post) {
+  const form = document.getElementById("post-form");
+  if (!form) return;
+
+  const titleEl = document.getElementById("postModalLabel");
+  const titleInput = document.getElementById("post-title");
+  const slugInput = document.getElementById("post-slug");
+  const categoryInput = document.getElementById("post-category");
+  const statusInput = document.getElementById("post-status");
+  const excerptInput = document.getElementById("post-excerpt");
+  const contentInput = document.getElementById("post-content");
+  const tagsInput = document.getElementById("post-tags");
+
+  if (post) {
+    editingPostId = post.id;
+    titleEl && (titleEl.textContent = "Edit Post");
+    titleInput.value = post.title || "";
+    slugInput.value = post.slug || "";
+    categoryInput.value = post.category || "";
+    statusInput.value = post.status || "draft";
+    excerptInput.value = post.excerpt || "";
+    contentInput.value = post.content || "";
+    tagsInput.value = (post.tags || []).join(", ");
+  } else {
+    editingPostId = null;
+    titleEl && (titleEl.textContent = "New Post");
+    form.reset();
+    statusInput.value = "draft";
+  }
+
+  const modalEl = document.getElementById("postModal");
+  if (modalEl && window.bootstrap) {
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  } else if (modalEl) {
+    modalEl.style.display = "block";
+  }
+}
+
+function setupPostForm() {
+  const form = document.getElementById("post-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById("post-title").value.trim();
+    const slug = document.getElementById("post-slug").value.trim();
+    const category = document.getElementById("post-category").value.trim();
+    const status = document.getElementById("post-status").value.trim();
+    const excerpt = document.getElementById("post-excerpt").value.trim();
+    const content = document.getElementById("post-content").value.trim();
+    const tags = document
+      .getElementById("post-tags")
+      .value.split(",")
+      .map((t) => t.trim())
+      .filter((t) => t);
+
+    const payload = {
+      title,
+      slug,
+      category,
+      status,
+      excerpt,
+      content,
+      tags,
+    };
+
+    // if publishing now and no published_at set, set it
+    if (status === "published" && !editingPostId) {
+      payload.published_at = new Date().toISOString();
+    }
+
+    try {
+      if (editingPostId) {
+        await updatePostApi(editingPostId, payload);
+      } else {
+        await createPostApi(payload);
+      }
+
+      const modalEl = document.getElementById("postModal");
+      if (modalEl && window.bootstrap) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal && modal.hide();
+      } else if (modalEl) {
+        modalEl.style.display = "none";
+      }
+
+      await loadPostsFromApi();
+    } catch (err) {
+      console.error("Error saving post:", err);
+      alert("Error saving post. See console for details.");
+    }
+  });
+}
+
+function setupPostsTableActions() {
+  const tbody = document.getElementById("posts-table-body");
+  if (!tbody) return;
+
+  tbody.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".post-edit-btn");
+    const deleteBtn = e.target.closest(".post-delete-btn");
+
+    if (editBtn) {
+      const tr = editBtn.closest("tr");
+      const id = tr?.dataset.id;
+      const post = postsCache.find((p) => p.id === id);
+      if (post) openPostModal(post);
+      return;
+    }
+
+    if (deleteBtn) {
+      const tr = deleteBtn.closest("tr");
+      const id = tr?.dataset.id;
+      if (!id) return;
+
+      if (!confirm("Delete this post?")) return;
+
+      try {
+        await deletePostApi(id);
+        await loadPostsFromApi();
+      } catch (err) {
+        console.error("Error deleting post:", err);
+        alert("Error deleting post. See console for details.");
+      }
+    }
+  });
+}
 
 // ---------- Files & Templates (read only) ----------
 
@@ -533,7 +749,7 @@ function renderFilesTable(files) {
           <td>${status}</td>
           <td>
             ${file.file_url
-              ? `<a href="${url}" target="_blank" rel="noopener noreferrer">Open</a>`
+              ? `<a href="#" class="file-open-link" data-id="${file.id}">Open</a>`
               : "-"}
           </td>
           <td>
@@ -717,8 +933,28 @@ function setupFilesTableActions() {
   if (!tbody) return;
 
   tbody.addEventListener("click", async (e) => {
+    const openLink = e.target.closest(".file-open-link");
     const editBtn = e.target.closest(".file-edit-btn");
     const deleteBtn = e.target.closest(".file-delete-btn");
+
+    if (openLink) {
+      e.preventDefault();
+      const id = openLink.dataset.id;
+      if (!id) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/files/download/${id}`);
+        if (!res.ok) throw new Error(`Download URL failed: HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.download_url) {
+          window.open(data.download_url, "_blank");
+        }
+      } catch (err) {
+        console.error("Error getting download URL:", err);
+        alert("Could not generate download link. See console for details.");
+      }
+      return;
+    }
 
     if (editBtn) {
       const tr = editBtn.closest("tr");
@@ -737,7 +973,7 @@ function setupFilesTableActions() {
 
       try {
         await deleteFileApi(id);
-        await loadFilesFromApi();
+        await loadFilesFromApi(true);
       } catch (err) {
         console.error("Error deleting file:", err);
         alert("Error deleting file. See console for details.");
@@ -746,10 +982,6 @@ function setupFilesTableActions() {
   });
 }
 
-// async function initFilesSection() {
-//   const files = await fetchFiles();
-//   renderFilesTable(files);
-// }
 async function initFilesSection() {
   await loadFilesFromApi(true);
   setupFileForm();
@@ -1058,8 +1290,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  initFilesSection();  
+  initFilesSection();
+  
+  // Posts
+  initPostsSection();
 });
+
+async function initPostsSection() {
+  await loadPostsFromApi();
+  setupPostForm();
+
+  const addPostBtn = document.getElementById("addPostBtn");
+  if (addPostBtn) {
+    addPostBtn.addEventListener("click", () => openPostModal(null));
+  }
+
+  setupPostsTableActions();
+}
 
 /* ========== Sidebar Navigation ========== */
 function setupSidebarNavigation() {
