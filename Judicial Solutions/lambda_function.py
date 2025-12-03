@@ -16,6 +16,12 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL)
 logger = logging.getLogger("judicial_single_lambda")
 
+FILES_BUCKET = (
+    os.environ.get("FILES_BUCKET")
+    or os.environ.get("FILES_BUCKET_NAME")
+    or "judicial-files-bucket"
+)
+
 TABLE_FORMS = os.environ.get("TABLE_FORMS", "judicial-forms")
 TABLE_CASES = os.environ.get("TABLE_CASES", "judicial-cases")
 TABLE_MESSAGES = os.environ.get("TABLE_MESSAGES", "judicial-messages")
@@ -23,6 +29,7 @@ TABLE_APPOINTMENTS = os.environ.get("TABLE_APPOINTMENTS", "judicial-appointments
 TABLE_SERVICES = os.environ.get("TABLE_SERVICES", "judicial-services")
 TABLE_FILES = os.environ.get("TABLE_FILES", "judicial-files")
 
+s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
 
 TABLE_MAP = {
@@ -91,6 +98,33 @@ def choose_table(resource: str):
             f"unknown resource '{resource}'. Allowed: {list(TABLE_MAP.keys())}"
         )
     return tbl
+
+def create_presigned_upload(event: Dict[str, Any]) -> Dict[str, Any]:
+    data = parse_json_body(event)
+    filename = (data.get("filename") or "").strip()
+    content_type = data.get("content_type") or "application/octet-stream"
+
+    if not filename:
+        return make_response(400, {"error": "filename_required"})
+
+    key = f"uploads/{uuid.uuid4().hex}_{filename}"
+
+    try:
+        url = s3.generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": FILES_BUCKET,
+                "Key": key,
+                "ContentType": content_type,
+            },
+            ExpiresIn=900,
+        )
+    except ClientError as e:
+        logger.exception("Error generating presigned URL")
+        return make_response(500, {"error": "presign_failed", "message": str(e)})
+
+    file_url = f"https://{FILES_BUCKET}.s3.ap-south-1.amazonaws.com/{key}"
+    return make_response(200, {"upload_url": url, "key": key, "file_url": file_url})
 
 # -------------------------
 # CRUD operations
@@ -284,6 +318,10 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
         return make_response(404, {"error": "no_resource_in_path"})
 
     resource = parts[0]  # forms | cases | messages | appointments | services
+
+    # POST /files/upload  -> get presigned URL
+    if resource == "files" and len(parts) == 2 and parts[1] == "upload" and method == "POST":
+        return create_presigned_upload(event)
 
     try:
         # POST /{resource}
