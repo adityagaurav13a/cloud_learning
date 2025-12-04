@@ -343,28 +343,28 @@
                         <div class="card-body">
                             <div class="row g-2 mb-3">
                                 <div class="col-md-3">
-                                    <input type="text" class="form-control form-control-sm"
+                                    <input id="leadSearch" type="text" class="form-control form-control-sm"
                                         placeholder="Search by name / email" />
                                 </div>
                                 <div class="col-md-3">
-                                    <select class="form-select form-select-sm">
-                                        <option value="">All statuses</option>
-                                        <option>New</option>
-                                        <option>In progress</option>
-                                        <option>Closed</option>
+                                    <select id="statusFilter" class="form-select form-select-sm">
+                                        <option value="all">All statuses</option>
+                                        <option value="new">New</option>
+                                        <option value="in_progress">In progress</option>
+                                        <option value="closed">Closed</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <select class="form-select form-select-sm">
-                                        <option value="">All case types</option>
-                                        <option>Civil</option>
-                                        <option>Criminal</option>
-                                        <option>Family</option>
-                                        <option>Corporate</option>
+                                    <select id="caseTypeFilter" class="form-select form-select-sm">
+                                        <option value="all">All case types</option>
+                                        <option value="Civil">Civil</option>
+                                        <option value="Criminal">Criminal</option>
+                                        <option value="Family">Family</option>
+                                        <option value="Corporate">Corporate</option>
+                                        <option value="General">General</option>
                                     </select>
                                 </div>
                             </div>
-
                             <div class="table-responsive">
                                 <table class="table table-hover table-sm align-middle">
                                     <thead class="table-light">
