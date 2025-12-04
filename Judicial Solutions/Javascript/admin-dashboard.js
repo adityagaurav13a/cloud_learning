@@ -776,6 +776,7 @@ async function loadFilesFromApi(reset = true) {
 
   applyFilesFilters();
   updateFilesPaginationControls();
+  updateFilesStatFromCache();
 }
 
 async function createFileApi(payload) {
@@ -1012,7 +1013,11 @@ async function initFilesSection() {
   }
 }
 
-
+function updateFilesStatFromCache() {
+  const el = document.getElementById("stat-files");
+  if (!el) return;
+  el.textContent = filesCache.length || 0;
+}
 
 // ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
 async function fetchForms() {
