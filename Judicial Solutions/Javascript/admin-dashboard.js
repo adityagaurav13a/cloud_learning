@@ -1064,7 +1064,12 @@ function updateLeadStatsFromForms(forms) {
 
 async function loadDashboardData() {
   const forms = await fetchForms();
-  allLeadsForms = forms || [];
+  // allLeadsForms = forms || [];
+  // attach status field (new / in_progress / closed)
+  allLeadsForms = (forms || []).map((f) => ({
+    ...f,
+    status: f.status || (f.read ? "closed" : "new"),
+  }));
 
   updateLeadStatsFromForms(allLeadsForms);
   updateRecentLeadsTable(allLeadsForms);
@@ -1116,42 +1121,6 @@ function formatDateTimeReadable(iso) {
 }
 
 // Leads section: full table (Leads / Contact Requests)
-// function updateLeadsSectionTable(forms) {
-//   const body = document.getElementById("leads-table-body");
-//   if (!body) return;
-
-//   const sorted = [...forms].sort(
-//     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-//   );
-
-//   body.innerHTML = sorted
-//     .map((f, idx) => {
-//       const status = f.read ? "Closed" : "New";
-//       const caseType = getCaseTypeFromForm(f);
-//       const id = f.id || f.form_id || f.pk || "";
-
-//       return `
-//         <tr>
-//           <td>${idx + 1}</td>
-//           <td>${f.name || "-"}</td>
-//           <td>${f.email || "-"}</td>
-//           <td>${f.phone || "-"}</td>
-//           <td>${caseType}</td>
-//           <td>${formatDateTimeReadable(f.created_at)}</td>
-//           <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
-//           <td class="text-end">
-//             <button class="btn btn-sm btn-outline-primary me-1 btn-lead-view" data-id="${id}">View</button>
-//             <button
-//               class="btn btn-sm ${hasNote ? "btn-secondary" : "btn-outline-secondary"} btn-lead-note"
-//               data-id="${id}"
-//             >
-//               ${hasNote ? "Note ✓" : "Note"}
-//             </button>
-//           </td>
-//         </tr>`;
-//     })
-//     .join("");
-// }
 function updateLeadsSectionTable(forms) {
   const body = document.getElementById("leads-table-body");
   if (!body) return;
@@ -1162,10 +1131,15 @@ function updateLeadsSectionTable(forms) {
 
   body.innerHTML = sorted
     .map((f, idx) => {
-      const status = f.read ? "Closed" : "New";
+      const rawStatus = (f.status || (f.read ? "closed" : "new")).toLowerCase();
+      let status;
+      if (rawStatus === "in_progress") status = "In progress";
+      else if (rawStatus === "closed") status = "Closed";
+      else status = "New";
+
       const caseType = getCaseTypeFromForm(f);
       const id = f.id || f.form_id || f.pk || "";
-      const hasNote = (f.internal_note || "").trim().length > 0; // ← add this
+      const hasNote = (f.internal_note || "").trim().length > 0;
 
       return `
         <tr>
@@ -1219,7 +1193,7 @@ function applyLeadsFiltersAndRender() {
     }
 
     if (statusVal !== "all") {
-      const s = (f.read ? "closed" : "new");
+      const s = (f.status || (f.read ? "closed" : "new")).toLowerCase();
       ok = ok && s === statusVal;
     }
 
@@ -1239,6 +1213,15 @@ function setupLeadsFilters() {
   if (searchInput) searchInput.addEventListener("input", applyLeadsFiltersAndRender);
   if (statusSelect) statusSelect.addEventListener("change", applyLeadsFiltersAndRender);
   if (caseTypeSelect) caseTypeSelect.addEventListener("change", applyLeadsFiltersAndRender);
+}
+
+function buildLeadUpdatePayload(form) {
+  const rawStatus = (form.status || (form.read ? "closed" : "new")).toLowerCase();
+  return {
+    status: rawStatus,                // "new" | "in_progress" | "closed"
+    read: rawStatus === "closed",     // backend can sync this
+    internal_note: form.internal_note || "",
+  };
 }
 
 function setupLeadsTableActions() {
@@ -1267,6 +1250,11 @@ function setupLeadsTableActions() {
           `Message:\n${form.message || form.details || "-"}\n\n` +
           `Internal note:\n${form.internal_note || "-"}`
       );
+      // 🔵 make status change to "In Progress"
+      form.status = "in_progress";
+
+      // 🔵 refresh table UI
+      applyLeadsFiltersAndRender();
     } else if (noteBtn) {
       const existing = form.internal_note || "";
       const note = prompt("Add / update internal note:", existing);
@@ -1657,8 +1645,6 @@ function populateDummyData() {
   }
 }
 
-/* ========== Appointments helpers ========== */
-
 // ========== Appointments: API helpers ==========
 
 async function fetchAppointments() {
@@ -1674,6 +1660,23 @@ async function fetchAppointments() {
     console.error("Error fetching appointments:", err);
     return [];
   }
+}
+
+function cycleAppointmentStatus(current) {
+  const flow = ["Pending", "Confirmed", "Completed", "Cancelled"];
+  const idx = flow.indexOf(current || "Pending");
+  const nextIndex = (idx === -1 ? 0 : (idx + 1) % flow.length);
+  return flow[nextIndex];
+}
+
+function buildAppointmentUpdatePayload(appt) {
+  return {
+    client: appt.client,
+    case_type: appt.case_type || appt.type,
+    datetime: appt.datetime,
+    mode: appt.mode,
+    status: appt.status,
+  };
 }
 
 async function createAppointment(payload) {
@@ -1746,7 +1749,6 @@ async function loadAppointmentsFromApi() {
   updateAppointmentsChartFromList();
 }
 
-
 function renderAppointmentsTable() {
   const tbody = document.getElementById("appointments-table-body");
   if (!tbody) return;
@@ -1760,16 +1762,26 @@ function renderAppointmentsTable() {
           <td>${caseType}</td>
           <td>${formatAppointmentDate(a.datetime)}</td>
           <td>${a.mode}</td>
-          <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
+          <td>
+            <span
+              class="badge appt-status-badge bg-${statusColor(a.status)}"
+              data-id="${a.id}"
+            >
+              ${a.status}
+            </span>
+          </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary me-1 btn-appointment-edit" data-id="${a.id}">Reschedule</button>
-            <button class="btn btn-sm btn-outline-danger btn-appointment-delete" data-id="${a.id}">Delete</button>
+            <button class="btn btn-sm btn-outline-primary me-1 btn-appointment-edit" data-id="${a.id}">
+              Reschedule
+            </button>
+            <button class="btn btn-sm btn-outline-danger btn-appointment-delete" data-id="${a.id}">
+              Delete
+            </button>
           </td>
         </tr>`;
     })
     .join("");
 }
-
 
 function renderAppointmentsPreview() {
   const tbody = document.getElementById("upcoming-appointments-body");
@@ -1781,13 +1793,20 @@ function renderAppointmentsPreview() {
     .map((a) => {
       const caseType = a.case_type || a.type || "General";
       return `
-    <tr>
-      <td>${a.client}</td>
-      <td>${caseType}</td>
-      <td>${formatAppointmentDate(a.datetime)}</td>
-      <td>${a.mode}</td>
-      <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
-    </tr>`
+        <tr>
+          <td>${a.client}</td>
+          <td>${caseType}</td>
+          <td>${formatAppointmentDate(a.datetime)}</td>
+          <td>${a.mode}</td>
+          <td>
+            <span
+              class="badge appt-status-badge bg-${statusColor(a.status)}"
+              data-id="${a.id}"
+            >
+              ${a.status}
+            </span>
+          </td>
+        </tr>`;
     })
     .join("");
 }
@@ -1797,6 +1816,23 @@ function setupAppointmentTableActions() {
   if (!tbody) return;
 
   tbody.addEventListener("click", async (e) => {
+    const statusBadge = e.target.closest(".appt-status-badge");
+    if (statusBadge) {
+      const id = statusBadge.dataset.id;
+      const appt = appointments.find((a) => a.id === id);
+      if (!appt) return;
+
+      appt.status = cycleAppointmentStatus(appt.status);
+
+      // later: send update to backend with buildAppointmentUpdatePayload(appt)
+      // console.log("Appointment status update:", buildAppointmentUpdatePayload(appt));
+
+      renderAppointmentsTable();
+      renderAppointmentsPreview();
+      updateAppointmentsStatsFromList();
+      updateAppointmentsChartFromList();
+      return;
+    }
     const editBtn = e.target.closest(".btn-appointment-edit");
     const deleteBtn = e.target.closest(".btn-appointment-delete");
 
