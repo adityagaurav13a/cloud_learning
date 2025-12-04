@@ -26,13 +26,16 @@ let editingServiceId = null;
 let filesCache = [];
 let editingFileId = null;
 
-
 let filesLastToken = null;
 const FILES_PAGE_SIZE = 50;
 
 // Posts state
 let postsCache = [];
 let editingPostId = null;
+
+// Leads state (for filters + view/note)
+let allLeadsForms = [];
+
 
 
 function formatAppointmentDate(raw) {
@@ -1061,11 +1064,13 @@ function updateLeadStatsFromForms(forms) {
 
 async function loadDashboardData() {
   const forms = await fetchForms();
-  updateLeadStatsFromForms(forms);
-  updateRecentLeadsTable(forms);
-  updateLeadsSectionTable(forms);
-  updateLeadsChartFromForms(forms);
-  updateCaseTypeChartFromForms(forms);
+  allLeadsForms = forms || [];
+
+  updateLeadStatsFromForms(allLeadsForms);
+  updateRecentLeadsTable(allLeadsForms);
+  applyLeadsFiltersAndRender();        // instead of direct table render
+  updateLeadsChartFromForms(allLeadsForms);
+  updateCaseTypeChartFromForms(allLeadsForms);
 }
 
 function formatDateShort(iso) {
@@ -1111,6 +1116,42 @@ function formatDateTimeReadable(iso) {
 }
 
 // Leads section: full table (Leads / Contact Requests)
+// function updateLeadsSectionTable(forms) {
+//   const body = document.getElementById("leads-table-body");
+//   if (!body) return;
+
+//   const sorted = [...forms].sort(
+//     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+//   );
+
+//   body.innerHTML = sorted
+//     .map((f, idx) => {
+//       const status = f.read ? "Closed" : "New";
+//       const caseType = getCaseTypeFromForm(f);
+//       const id = f.id || f.form_id || f.pk || "";
+
+//       return `
+//         <tr>
+//           <td>${idx + 1}</td>
+//           <td>${f.name || "-"}</td>
+//           <td>${f.email || "-"}</td>
+//           <td>${f.phone || "-"}</td>
+//           <td>${caseType}</td>
+//           <td>${formatDateTimeReadable(f.created_at)}</td>
+//           <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
+//           <td class="text-end">
+//             <button class="btn btn-sm btn-outline-primary me-1 btn-lead-view" data-id="${id}">View</button>
+//             <button
+//               class="btn btn-sm ${hasNote ? "btn-secondary" : "btn-outline-secondary"} btn-lead-note"
+//               data-id="${id}"
+//             >
+//               ${hasNote ? "Note ✓" : "Note"}
+//             </button>
+//           </td>
+//         </tr>`;
+//     })
+//     .join("");
+// }
 function updateLeadsSectionTable(forms) {
   const body = document.getElementById("leads-table-body");
   if (!body) return;
@@ -1122,8 +1163,10 @@ function updateLeadsSectionTable(forms) {
   body.innerHTML = sorted
     .map((f, idx) => {
       const status = f.read ? "Closed" : "New";
-      // const caseType = f.case_type || "General";
       const caseType = getCaseTypeFromForm(f);
+      const id = f.id || f.form_id || f.pk || "";
+      const hasNote = (f.internal_note || "").trim().length > 0; // ← add this
+
       return `
         <tr>
           <td>${idx + 1}</td>
@@ -1134,12 +1177,105 @@ function updateLeadsSectionTable(forms) {
           <td>${formatDateTimeReadable(f.created_at)}</td>
           <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary me-1">View</button>
-            <button class="btn btn-sm btn-outline-secondary">Note</button>
+            <button class="btn btn-sm btn-outline-primary me-1 btn-lead-view" data-id="${id}">View</button>
+            <button
+              class="btn btn-sm ${hasNote ? "btn-secondary" : "btn-outline-secondary"} btn-lead-note"
+              data-id="${id}"
+            >
+              ${hasNote ? "Note ✓" : "Note"}
+            </button>
           </td>
         </tr>`;
     })
     .join("");
+}
+
+// --- Leads filters + actions ---
+
+function getLeadsFilterControls() {
+  const section = document.getElementById("leads-section");
+  if (!section) return {};
+  const searchInput = section.querySelector("input.form-control-sm");
+  const selects = section.querySelectorAll("select.form-select-sm");
+  const statusSelect = selects[0];
+  const caseTypeSelect = selects[1];
+  return { searchInput, statusSelect, caseTypeSelect };
+}
+
+function applyLeadsFiltersAndRender() {
+  const forms = allLeadsForms || [];
+  const { searchInput, statusSelect, caseTypeSelect } = getLeadsFilterControls();
+
+  const search = (searchInput?.value || "").trim().toLowerCase();
+  const statusVal = (statusSelect?.value || "all").toLowerCase() || "all";
+  const caseTypeVal = caseTypeSelect?.value || "all";
+
+  const filtered = forms.filter((f) => {
+    let ok = true;
+
+    if (search) {
+      const text = `${f.name || ""} ${f.email || ""}`.toLowerCase();
+      ok = ok && text.includes(search);
+    }
+
+    if (statusVal !== "all") {
+      const s = (f.read ? "closed" : "new");
+      ok = ok && s === statusVal;
+    }
+
+    if (caseTypeVal !== "all") {
+      const ct = getCaseTypeFromForm(f);
+      ok = ok && ct === caseTypeVal;
+    }
+
+    return ok;
+  });
+
+  updateLeadsSectionTable(filtered);
+}
+
+function setupLeadsFilters() {
+  const { searchInput, statusSelect, caseTypeSelect } = getLeadsFilterControls();
+  if (searchInput) searchInput.addEventListener("input", applyLeadsFiltersAndRender);
+  if (statusSelect) statusSelect.addEventListener("change", applyLeadsFiltersAndRender);
+  if (caseTypeSelect) caseTypeSelect.addEventListener("change", applyLeadsFiltersAndRender);
+}
+
+function setupLeadsTableActions() {
+  const body = document.getElementById("leads-table-body");
+  if (!body) return;
+
+  body.addEventListener("click", (e) => {
+    const viewBtn = e.target.closest(".btn-lead-view");
+    const noteBtn = e.target.closest(".btn-lead-note");
+    if (!viewBtn && !noteBtn) return;
+
+    const id = viewBtn?.dataset.id || noteBtn?.dataset.id;
+    const form = (allLeadsForms || []).find(
+      (f) => String(f.id || f.form_id || f.pk) === String(id)
+    );
+    if (!form) return;
+
+    if (viewBtn) {
+      alert(
+        `Lead details\n\n` +
+          `Name: ${form.name || "-"}\n` +
+          `Email: ${form.email || "-"}\n` +
+          `Phone: ${form.phone || "-"}\n` +
+          `Case type: ${getCaseTypeFromForm(form)}\n` +
+          `Received: ${formatDateTimeReadable(form.created_at)}\n\n` +
+          `Message:\n${form.message || form.details || "-"}\n\n` +
+          `Internal note:\n${form.internal_note || "-"}`
+      );
+    } else if (noteBtn) {
+      const existing = form.internal_note || "";
+      const note = prompt("Add / update internal note:", existing);
+      if (note === null) return;
+      form.internal_note = note;
+      applyLeadsFiltersAndRender();
+      // later: send to backend
+    }
+  });
 }
 
 // Update line chart "Leads" dataset from real forms (last 7 days)
@@ -1242,6 +1378,8 @@ document.addEventListener("DOMContentLoaded", () => {
   populateDummyData();
   initCharts();
   setupCaseSearchMock();
+  setupLeadsFilters();
+  setupLeadsTableActions();
 
   // override dummy leads with real data
   loadDashboardData();
@@ -1329,6 +1467,12 @@ function setupSidebarNavigation() {
       });
 
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // 🔴 NEW: auto-hide sidebar on mobile after navigation
+      if (window.innerWidth < 992) {
+        const sidebar = document.getElementById("sidebar");
+        sidebar?.classList.remove("active");
+      }
     });
   });
 
@@ -1353,10 +1497,29 @@ function setupSidebarToggle() {
 
   if (!menuToggle || !sidebar) return;
 
+  // Existing click toggle
   menuToggle.addEventListener("click", () => {
     sidebar.classList.toggle("active");
   });
+
+  // NEW: auto-hide when scrolling down on small screens
+  let lastScrollY = window.scrollY;
+
+  window.addEventListener("scroll", () => {
+    // only on mobile / tablet (same breakpoint as Bootstrap lg)
+    if (window.innerWidth >= 992) return;
+
+    const current = window.scrollY;
+    const scrollingDown = current > lastScrollY + 10;
+
+    if (scrollingDown && sidebar.classList.contains("active")) {
+      sidebar.classList.remove("active");
+    }
+
+    lastScrollY = current;
+  });
 }
+
 
 /* ========== Dummy Data for Tables / Lists ========== */
 function populateDummyData() {
@@ -1857,11 +2020,12 @@ function setupCaseSearchMock() {
         '<i class="bi bi-arrow-clockwise me-1"></i>Refreshing...';
 
       const forms = await fetchForms();
-      updateLeadStatsFromForms(forms);
-      updateRecentLeadsTable(forms);
-      updateLeadsSectionTable(forms);
-      updateLeadsChartFromForms(forms);
-      updateCaseTypeChartFromForms(forms);
+      allLeadsForms = forms || [];
+      updateLeadStatsFromForms(allLeadsForms);
+      updateRecentLeadsTable(allLeadsForms);
+      applyLeadsFiltersAndRender();
+      updateLeadsChartFromForms(allLeadsForms);
+      updateCaseTypeChartFromForms(allLeadsForms);
 
       refreshBtn.disabled = false;
       refreshBtn.innerHTML =
