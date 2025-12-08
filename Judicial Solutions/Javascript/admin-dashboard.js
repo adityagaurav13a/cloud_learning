@@ -26,13 +26,16 @@ let editingServiceId = null;
 let filesCache = [];
 let editingFileId = null;
 
-
 let filesLastToken = null;
 const FILES_PAGE_SIZE = 50;
 
 // Posts state
 let postsCache = [];
 let editingPostId = null;
+
+// Leads state (for filters + view/note)
+let allLeadsForms = [];
+
 
 
 function formatAppointmentDate(raw) {
@@ -773,6 +776,7 @@ async function loadFilesFromApi(reset = true) {
 
   applyFilesFilters();
   updateFilesPaginationControls();
+  updateFilesStatFromCache();
 }
 
 async function createFileApi(payload) {
@@ -1009,7 +1013,11 @@ async function initFilesSection() {
   }
 }
 
-
+function updateFilesStatFromCache() {
+  const el = document.getElementById("stat-files");
+  if (!el) return;
+  el.textContent = filesCache.length || 0;
+}
 
 // ========== Leads: fetch from backend & 7-day stats (Step 4B) ==========
 async function fetchForms() {
@@ -1061,11 +1069,18 @@ function updateLeadStatsFromForms(forms) {
 
 async function loadDashboardData() {
   const forms = await fetchForms();
-  updateLeadStatsFromForms(forms);
-  updateRecentLeadsTable(forms);
-  updateLeadsSectionTable(forms);
-  updateLeadsChartFromForms(forms);
-  updateCaseTypeChartFromForms(forms);
+  // allLeadsForms = forms || [];
+  // attach status field (new / in_progress / closed)
+  allLeadsForms = (forms || []).map((f) => ({
+    ...f,
+    status: f.status || (f.read ? "closed" : "new"),
+  }));
+
+  updateLeadStatsFromForms(allLeadsForms);
+  updateRecentLeadsTable(allLeadsForms);
+  applyLeadsFiltersAndRender();        // instead of direct table render
+  updateLeadsChartFromForms(allLeadsForms);
+  updateCaseTypeChartFromForms(allLeadsForms);
 }
 
 function formatDateShort(iso) {
@@ -1121,9 +1136,16 @@ function updateLeadsSectionTable(forms) {
 
   body.innerHTML = sorted
     .map((f, idx) => {
-      const status = f.read ? "Closed" : "New";
-      // const caseType = f.case_type || "General";
+      const rawStatus = (f.status || (f.read ? "closed" : "new")).toLowerCase();
+      let status;
+      if (rawStatus === "in_progress") status = "In progress";
+      else if (rawStatus === "closed") status = "Closed";
+      else status = "New";
+
       const caseType = getCaseTypeFromForm(f);
+      const id = f.id || f.form_id || f.pk || "";
+      const hasNote = (f.internal_note || "").trim().length > 0;
+
       return `
         <tr>
           <td>${idx + 1}</td>
@@ -1134,12 +1156,119 @@ function updateLeadsSectionTable(forms) {
           <td>${formatDateTimeReadable(f.created_at)}</td>
           <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary me-1">View</button>
-            <button class="btn btn-sm btn-outline-secondary">Note</button>
+            <button class="btn btn-sm btn-outline-primary me-1 btn-lead-view" data-id="${id}">View</button>
+            <button
+              class="btn btn-sm ${hasNote ? "btn-secondary" : "btn-outline-secondary"} btn-lead-note"
+              data-id="${id}"
+            >
+              ${hasNote ? "Note ✓" : "Note"}
+            </button>
           </td>
         </tr>`;
     })
     .join("");
+}
+
+// --- Leads filters + actions ---
+
+function getLeadsFilterControls() {
+  const section = document.getElementById("leads-section");
+  if (!section) return {};
+  const searchInput = section.querySelector("input.form-control-sm");
+  const selects = section.querySelectorAll("select.form-select-sm");
+  const statusSelect = selects[0];
+  const caseTypeSelect = selects[1];
+  return { searchInput, statusSelect, caseTypeSelect };
+}
+
+function applyLeadsFiltersAndRender() {
+  const forms = allLeadsForms || [];
+  const { searchInput, statusSelect, caseTypeSelect } = getLeadsFilterControls();
+
+  const search = (searchInput?.value || "").trim().toLowerCase();
+  const statusVal = (statusSelect?.value || "all").toLowerCase() || "all";
+  const caseTypeVal = caseTypeSelect?.value || "all";
+
+  const filtered = forms.filter((f) => {
+    let ok = true;
+
+    if (search) {
+      const text = `${f.name || ""} ${f.email || ""}`.toLowerCase();
+      ok = ok && text.includes(search);
+    }
+
+    if (statusVal !== "all") {
+      const s = (f.status || (f.read ? "closed" : "new")).toLowerCase();
+      ok = ok && s === statusVal;
+    }
+
+    if (caseTypeVal !== "all") {
+      const ct = getCaseTypeFromForm(f);
+      ok = ok && ct === caseTypeVal;
+    }
+
+    return ok;
+  });
+
+  updateLeadsSectionTable(filtered);
+}
+
+function setupLeadsFilters() {
+  const { searchInput, statusSelect, caseTypeSelect } = getLeadsFilterControls();
+  if (searchInput) searchInput.addEventListener("input", applyLeadsFiltersAndRender);
+  if (statusSelect) statusSelect.addEventListener("change", applyLeadsFiltersAndRender);
+  if (caseTypeSelect) caseTypeSelect.addEventListener("change", applyLeadsFiltersAndRender);
+}
+
+function buildLeadUpdatePayload(form) {
+  const rawStatus = (form.status || (form.read ? "closed" : "new")).toLowerCase();
+  return {
+    status: rawStatus,                // "new" | "in_progress" | "closed"
+    read: rawStatus === "closed",     // backend can sync this
+    internal_note: form.internal_note || "",
+  };
+}
+
+function setupLeadsTableActions() {
+  const body = document.getElementById("leads-table-body");
+  if (!body) return;
+
+  body.addEventListener("click", (e) => {
+    const viewBtn = e.target.closest(".btn-lead-view");
+    const noteBtn = e.target.closest(".btn-lead-note");
+    if (!viewBtn && !noteBtn) return;
+
+    const id = viewBtn?.dataset.id || noteBtn?.dataset.id;
+    const form = (allLeadsForms || []).find(
+      (f) => String(f.id || f.form_id || f.pk) === String(id)
+    );
+    if (!form) return;
+
+    if (viewBtn) {
+      alert(
+        `Lead details\n\n` +
+          `Name: ${form.name || "-"}\n` +
+          `Email: ${form.email || "-"}\n` +
+          `Phone: ${form.phone || "-"}\n` +
+          `Case type: ${getCaseTypeFromForm(form)}\n` +
+          `Received: ${formatDateTimeReadable(form.created_at)}\n\n` +
+          `Message:\n${form.message || form.details || "-"}\n\n` +
+          `Internal note:\n${form.internal_note || "-"}`
+      );
+      // 🔵 make status change to "In Progress"
+      form.status = "in_progress";
+
+      // 🔵 refresh table UI
+      applyLeadsFiltersAndRender();
+    } else if (noteBtn) {
+      const existing = form.internal_note || "";
+      const note = prompt("Add / update internal note:", existing);
+      if (note === null) return;
+      form.internal_note = note;
+      applyLeadsFiltersAndRender();
+      // later: send to backend
+    }
+  });
 }
 
 // Update line chart "Leads" dataset from real forms (last 7 days)
@@ -1242,6 +1371,8 @@ document.addEventListener("DOMContentLoaded", () => {
   populateDummyData();
   initCharts();
   setupCaseSearchMock();
+  setupLeadsFilters();
+  setupLeadsTableActions();
 
   // override dummy leads with real data
   loadDashboardData();
@@ -1329,6 +1460,12 @@ function setupSidebarNavigation() {
       });
 
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // 🔴 NEW: auto-hide sidebar on mobile after navigation
+      if (window.innerWidth < 992) {
+        const sidebar = document.getElementById("sidebar");
+        sidebar?.classList.remove("active");
+      }
     });
   });
 
@@ -1353,10 +1490,29 @@ function setupSidebarToggle() {
 
   if (!menuToggle || !sidebar) return;
 
+  // Existing click toggle
   menuToggle.addEventListener("click", () => {
     sidebar.classList.toggle("active");
   });
+
+  // NEW: auto-hide when scrolling down on small screens
+  let lastScrollY = window.scrollY;
+
+  window.addEventListener("scroll", () => {
+    // only on mobile / tablet (same breakpoint as Bootstrap lg)
+    if (window.innerWidth >= 992) return;
+
+    const current = window.scrollY;
+    const scrollingDown = current > lastScrollY + 10;
+
+    if (scrollingDown && sidebar.classList.contains("active")) {
+      sidebar.classList.remove("active");
+    }
+
+    lastScrollY = current;
+  });
 }
+
 
 /* ========== Dummy Data for Tables / Lists ========== */
 function populateDummyData() {
@@ -1494,8 +1650,6 @@ function populateDummyData() {
   }
 }
 
-/* ========== Appointments helpers ========== */
-
 // ========== Appointments: API helpers ==========
 
 async function fetchAppointments() {
@@ -1511,6 +1665,23 @@ async function fetchAppointments() {
     console.error("Error fetching appointments:", err);
     return [];
   }
+}
+
+function cycleAppointmentStatus(current) {
+  const flow = ["Pending", "Confirmed", "Completed", "Cancelled"];
+  const idx = flow.indexOf(current || "Pending");
+  const nextIndex = (idx === -1 ? 0 : (idx + 1) % flow.length);
+  return flow[nextIndex];
+}
+
+function buildAppointmentUpdatePayload(appt) {
+  return {
+    client: appt.client,
+    case_type: appt.case_type || appt.type,
+    datetime: appt.datetime,
+    mode: appt.mode,
+    status: appt.status,
+  };
 }
 
 async function createAppointment(payload) {
@@ -1583,7 +1754,6 @@ async function loadAppointmentsFromApi() {
   updateAppointmentsChartFromList();
 }
 
-
 function renderAppointmentsTable() {
   const tbody = document.getElementById("appointments-table-body");
   if (!tbody) return;
@@ -1597,16 +1767,26 @@ function renderAppointmentsTable() {
           <td>${caseType}</td>
           <td>${formatAppointmentDate(a.datetime)}</td>
           <td>${a.mode}</td>
-          <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
+          <td>
+            <span
+              class="badge appt-status-badge bg-${statusColor(a.status)}"
+              data-id="${a.id}"
+            >
+              ${a.status}
+            </span>
+          </td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary me-1 btn-appointment-edit" data-id="${a.id}">Reschedule</button>
-            <button class="btn btn-sm btn-outline-danger btn-appointment-delete" data-id="${a.id}">Delete</button>
+            <button class="btn btn-sm btn-outline-primary me-1 btn-appointment-edit" data-id="${a.id}">
+              Reschedule
+            </button>
+            <button class="btn btn-sm btn-outline-danger btn-appointment-delete" data-id="${a.id}">
+              Delete
+            </button>
           </td>
         </tr>`;
     })
     .join("");
 }
-
 
 function renderAppointmentsPreview() {
   const tbody = document.getElementById("upcoming-appointments-body");
@@ -1618,13 +1798,20 @@ function renderAppointmentsPreview() {
     .map((a) => {
       const caseType = a.case_type || a.type || "General";
       return `
-    <tr>
-      <td>${a.client}</td>
-      <td>${caseType}</td>
-      <td>${formatAppointmentDate(a.datetime)}</td>
-      <td>${a.mode}</td>
-      <td><span class="badge bg-${statusColor(a.status)}">${a.status}</span></td>
-    </tr>`
+        <tr>
+          <td>${a.client}</td>
+          <td>${caseType}</td>
+          <td>${formatAppointmentDate(a.datetime)}</td>
+          <td>${a.mode}</td>
+          <td>
+            <span
+              class="badge appt-status-badge bg-${statusColor(a.status)}"
+              data-id="${a.id}"
+            >
+              ${a.status}
+            </span>
+          </td>
+        </tr>`;
     })
     .join("");
 }
@@ -1634,6 +1821,23 @@ function setupAppointmentTableActions() {
   if (!tbody) return;
 
   tbody.addEventListener("click", async (e) => {
+    const statusBadge = e.target.closest(".appt-status-badge");
+    if (statusBadge) {
+      const id = statusBadge.dataset.id;
+      const appt = appointments.find((a) => a.id === id);
+      if (!appt) return;
+
+      appt.status = cycleAppointmentStatus(appt.status);
+
+      // later: send update to backend with buildAppointmentUpdatePayload(appt)
+      // console.log("Appointment status update:", buildAppointmentUpdatePayload(appt));
+
+      renderAppointmentsTable();
+      renderAppointmentsPreview();
+      updateAppointmentsStatsFromList();
+      updateAppointmentsChartFromList();
+      return;
+    }
     const editBtn = e.target.closest(".btn-appointment-edit");
     const deleteBtn = e.target.closest(".btn-appointment-delete");
 
@@ -1857,11 +2061,12 @@ function setupCaseSearchMock() {
         '<i class="bi bi-arrow-clockwise me-1"></i>Refreshing...';
 
       const forms = await fetchForms();
-      updateLeadStatsFromForms(forms);
-      updateRecentLeadsTable(forms);
-      updateLeadsSectionTable(forms);
-      updateLeadsChartFromForms(forms);
-      updateCaseTypeChartFromForms(forms);
+      allLeadsForms = forms || [];
+      updateLeadStatsFromForms(allLeadsForms);
+      updateRecentLeadsTable(allLeadsForms);
+      applyLeadsFiltersAndRender();
+      updateLeadsChartFromForms(allLeadsForms);
+      updateCaseTypeChartFromForms(allLeadsForms);
 
       refreshBtn.disabled = false;
       refreshBtn.innerHTML =
