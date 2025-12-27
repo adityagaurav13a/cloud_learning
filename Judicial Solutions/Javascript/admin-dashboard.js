@@ -133,6 +133,17 @@ function updateAppointmentsStatsFromList() {
   card.textContent = count;
 }
 
+function normalizeStatus(s) {
+  return (s || "NEW").toUpperCase();
+}
+
+function statusLabel(s) {
+  const v = normalizeStatus(s);
+  if (v === "IN_PROGRESS") return "In progress";
+  if (v === "COMPLETED") return "Closed";
+  return "New";
+}
+
 function updateAppointmentsChartFromList() {
   if (!leadsAppointmentsChart) return;
 
@@ -253,6 +264,14 @@ async function loadSavedCasesFromApi() {
   savedCases = items || [];
   updateSavedCasesStat(savedCases);
   updateSavedCasesTable(savedCases);
+}
+
+async function updateLead(id, payload = {}) {
+  return fetch(`${API_BASE}/forms/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 // ========== Services: API + UI helpers (Step 9B + 9C) ==========
@@ -1069,11 +1088,9 @@ function updateLeadStatsFromForms(forms) {
 
 async function loadDashboardData() {
   const forms = await fetchForms();
-  // allLeadsForms = forms || [];
-  // attach status field (new / in_progress / closed)
   allLeadsForms = (forms || []).map((f) => ({
     ...f,
-    status: f.status || (f.read ? "closed" : "new"),
+    status: f.status || "NEW",
   }));
 
   updateLeadStatsFromForms(allLeadsForms);
@@ -1136,11 +1153,8 @@ function updateLeadsSectionTable(forms) {
 
   body.innerHTML = sorted
     .map((f, idx) => {
-      const rawStatus = (f.status || (f.read ? "closed" : "new")).toLowerCase();
-      let status;
-      if (rawStatus === "in_progress") status = "In progress";
-      else if (rawStatus === "closed") status = "Closed";
-      else status = "New";
+      const rawStatus = (f.status || "NEW").toUpperCase();
+      const status = statusLabel(f.status);
 
       const caseType = getCaseTypeFromForm(f);
       const id = f.id || f.form_id || f.pk || "";
@@ -1158,11 +1172,24 @@ function updateLeadsSectionTable(forms) {
           <td class="text-end">
             <button class="btn btn-sm btn-outline-primary me-1 btn-lead-view" data-id="${id}">View</button>
             <button
-              class="btn btn-sm ${hasNote ? "btn-secondary" : "btn-outline-secondary"} btn-lead-note"
-              data-id="${id}"
-            >
-              ${hasNote ? "Note ✓" : "Note"}
+              class="btn btn-sm me-1 btn-lead-note
+                    ${hasNote ? "btn-secondary" : "btn-outline-secondary"}"
+              data-id="${id}">
+              ${hasNote ? "Noted ✓" : "Note"}
             </button>
+
+            <div class="dropdown d-inline">
+              <button class="btn btn-sm btn-outline-dark dropdown-toggle"
+                      data-bs-toggle="dropdown">
+                More
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item btn-lead-complete" data-id="${id}" href="#">Complete</a></li>
+                <li><a class="dropdown-item btn-lead-reopen" data-id="${id}" href="#">Reopen</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger btn-lead-delete" data-id="${id}" href="#">Delete</a></li>
+              </ul>
+            </div>
           </td>
         </tr>`;
     })
@@ -1198,7 +1225,7 @@ function applyLeadsFiltersAndRender() {
     }
 
     if (statusVal !== "all") {
-      const s = (f.status || (f.read ? "closed" : "new")).toLowerCase();
+      const s = (f.status || "NEW").toLowerCase();
       ok = ok && s === statusVal;
     }
 
@@ -1221,10 +1248,7 @@ function setupLeadsFilters() {
 }
 
 function buildLeadUpdatePayload(form) {
-  const rawStatus = (form.status || (form.read ? "closed" : "new")).toLowerCase();
-  return {
-    status: rawStatus,                // "new" | "in_progress" | "closed"
-    read: rawStatus === "closed",     // backend can sync this
+  return {    // backend can sync this
     internal_note: form.internal_note || "",
   };
 }
@@ -1255,17 +1279,24 @@ function setupLeadsTableActions() {
           `Message:\n${form.message || form.details || "-"}\n\n` +
           `Internal note:\n${form.internal_note || "-"}`
       );
-      // 🔵 make status change to "In Progress"
-      form.status = "in_progress";
+      if (e.target.classList.contains("btn-lead-reopen")) {
+        if (!confirm("Reopen this lead and move it back to In Progress?")) return;
 
-      // 🔵 refresh table UI
-      applyLeadsFiltersAndRender();
+        updateLead(id, { status: "NEW" }).then(() => {
+          const f = allLeadsForms.find(x => x.id === id);
+          if (f) f.status = "IN_PROGRESS";
+          applyLeadsFiltersAndRender();
+      });
+      }
     } else if (noteBtn) {
       const existing = form.internal_note || "";
       const note = prompt("Add / update internal note:", existing);
       if (note === null) return;
-      form.internal_note = note;
-      applyLeadsFiltersAndRender();
+      updateLead(id, { internal_note: note, status: "IN_PROGRESS" }).then(() => {
+        form.internal_note = note;
+        form.status = "IN_PROGRESS";
+        applyLeadsFiltersAndRender();
+      });
       // later: send to backend
     }
   });
@@ -1337,7 +1368,6 @@ function updateRecentLeadsTable(forms) {
   const body = document.getElementById("recent-leads-body");
   if (!body) return;
 
-  // sort newest first and take top 5
   const sorted = [...forms].sort(
     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
   );
@@ -1346,20 +1376,21 @@ function updateRecentLeadsTable(forms) {
   body.innerHTML = top
     .map((f) => {
       const name = f.name || "Unknown";
-      // const type = f.case_type || "General";
       const type = getCaseTypeFromForm(f);
       const date = formatDateShort(f.created_at);
-      const status = f.read ? "Closed" : "New";
+      const label = statusLabel(f.status);
+
       return `
         <tr>
           <td>${name}</td>
           <td>${type}</td>
           <td>${date}</td>
-          <td><span class="badge bg-${statusColor(status)}">${status}</span></td>
+          <td><span class="badge bg-${statusColor(label)}">${label}</span></td>
         </tr>`;
     })
     .join("");
 }
+
 
 
 // ========== Main Dashboard JS ==========
@@ -2061,7 +2092,7 @@ function setupCaseSearchMock() {
         '<i class="bi bi-arrow-clockwise me-1"></i>Refreshing...';
 
       const forms = await fetchForms();
-      allLeadsForms = forms || [];
+      allLeadsForms = forms.filter(f => !f.is_deleted);
       updateLeadStatsFromForms(allLeadsForms);
       updateRecentLeadsTable(allLeadsForms);
       applyLeadsFiltersAndRender();
@@ -2125,4 +2156,42 @@ function setupCaseSearchMock() {
       )
       .join("");
   });
+  document.addEventListener("click", (e) => {
+  const target = e.target.closest("[data-id]");
+  if (!target) return;
+
+  if (target.tagName === "A") e.preventDefault();
+
+  const id = target.dataset.id;
+
+  // Complete
+  if (target.classList.contains("btn-lead-complete")) {
+    updateLead(id, { status: "COMPLETED" }).then(() => {
+      const form = allLeadsForms.find(x => x.id === id);
+      if (form) form.status = "COMPLETED";
+      applyLeadsFiltersAndRender();
+    });
+  }
+
+  // Delete (soft)
+  if (target.classList.contains("btn-lead-delete")) {
+    if (!confirm("Delete this lead?")) return;
+    updateLead(id, { is_deleted: true }).then(() => {
+      allLeadsForms = allLeadsForms.filter(x => x.id !== id);
+      applyLeadsFiltersAndRender();
+    });
+  }
+
+  // Reopen
+  if (target.classList.contains("btn-lead-reopen")) {
+    if (!confirm("Reopen this lead?")) return;
+    updateLead(id, { status: "IN_PROGRESS" }).then(() => {
+      const form = allLeadsForms.find(x => x.id === id);
+      if (form) form.status = "IN_PROGRESS";
+      applyLeadsFiltersAndRender();
+    });
+  }
+});
+
+
 }
