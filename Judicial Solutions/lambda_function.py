@@ -139,11 +139,6 @@ def create_resource_item(resource: str, payload: Dict[str, Any]) -> Dict[str, An
         "read": False,
     }
 
-    # Lead lifecycle defaults
-    "status": "NEW",
-    "deleted": False,
-    "first_viewed_at": None,
-
     # Resource-specific defaults
     if resource == "forms":
         base.update(
@@ -235,32 +230,6 @@ def get_resource_item(resource: str, item_id: str) -> Optional[Dict[str, Any]]:
     item = resp.get("Item")
     logger.info("Get item from %s id=%s found=%s", table.table_name, item_id, bool(item))
     return item
-
-def mark_lead_in_progress_if_new(item: Dict[str, Any]) -> Dict[str, Any]:
-    if item.get("status", "NEW") != "NEW":
-        return item  # already handled
-
-    table = choose_table("forms")
-
-    resp = table.update_item(
-        Key={"id": item["id"]},
-        UpdateExpression="""
-            SET #s = :s,
-                first_viewed_at = :f,
-                updated_at = :u
-        """,
-        ExpressionAttributeNames={
-            "#s": "status"
-        },
-        ExpressionAttributeValues={
-            ":s": "IN_PROGRESS",
-            ":f": now_iso(),
-            ":u": now_iso(),
-        },
-        ReturnValues="ALL_NEW",
-    )
-
-    return resp["Attributes"]
 
 def update_read_flag(resource: str, item_id: str, read_flag: bool) -> Optional[Dict[str, Any]]:
     table = choose_table(resource)
@@ -387,6 +356,9 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
             limit = int(qs.get("limit", "50"))
             last = qs.get("last")
             items, last_key = list_resource_items(resource, limit=limit, last=last)
+            # FILTER SOFT-DELETED ITEMS (ONLY FOR FORMS)
+            if resource == "forms":
+                items = [item for item in items if not item.get("is_deleted", False)]
             return make_response(
                 200,
                 {"items": items, "last": json.dumps(last_key) if last_key else None},
@@ -398,11 +370,6 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
             item = get_resource_item(resource, item_id)
             if not item:
                 return make_response(404, {"error": "not_found"})
-
-            # auto-mark lead IN_PROGRESS on first view
-            if resource == "forms" and not item.get("deleted", False):
-                item = mark_lead_in_progress_if_new(item)
-
             return make_response(200, item)
 
         # PATCH /{resource}/{id}/read
