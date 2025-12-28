@@ -99,6 +99,16 @@ def choose_table(resource: str):
         )
     return tbl
 
+def get_file_by_id(file_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        table = dynamodb.Table("judicial-files")
+        res = table.get_item(Key={"id": file_id})
+        return res.get("Item")
+    except Exception:
+        logger.exception("Error fetching file by id")
+        return None
+
+
 def create_presigned_upload(event: Dict[str, Any]) -> Dict[str, Any]:
     data = parse_json_body(event)
     filename = (data.get("filename") or "").strip()
@@ -115,7 +125,7 @@ def create_presigned_upload(event: Dict[str, Any]) -> Dict[str, Any]:
             Params={
                 "Bucket": FILES_BUCKET,
                 "Key": key,
-                "ContentType": content_type,
+                # "ContentType": content_type,
             },
             ExpiresIn=900,
         )
@@ -125,6 +135,41 @@ def create_presigned_upload(event: Dict[str, Any]) -> Dict[str, Any]:
 
     file_url = f"https://{FILES_BUCKET}.s3.ap-south-1.amazonaws.com/{key}"
     return make_response(200, {"upload_url": url, "key": key, "file_url": file_url})
+
+def create_presigned_download(event: Dict[str, Any]) -> Dict[str, Any]:
+    file_id = event.get("pathParameters", {}).get("id")
+    if not file_id:
+        return make_response(400, {"error": "file_id_required"})
+
+    item = get_file_by_id(file_id)
+    if not item or not item.get("file_url"):
+        return make_response(404, {"error": "file_not_found"})
+
+    try:
+        file_url = item["file_url"]
+
+        # 🔥 FIX A — derive key from file_url
+        prefix = f"https://{FILES_BUCKET}.s3.ap-south-1.amazonaws.com/"
+        if not file_url.startswith(prefix):
+            return make_response(400, {"error": "invalid_file_url"})
+
+        key = file_url.replace(prefix, "", 1)
+
+        url = s3.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": FILES_BUCKET,
+                "Key": key,
+            },
+            ExpiresIn=300,  # 5 minutes
+        )
+
+        return make_response(200, {"download_url": url})
+
+    except ClientError as e:
+        logger.exception("Error generating download URL")
+        return make_response(500, {"error": "download_failed"})
+
 
 # -------------------------
 # CRUD operations
@@ -354,6 +399,10 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
     # POST /files/upload  -> get presigned URL
     if resource == "files" and len(parts) == 2 and parts[1] == "upload" and method == "POST":
         return create_presigned_upload(event)
+
+    # GET /files/download/{id}
+    if resource == "files" and len(parts) == 3 and parts[1] == "download" and method == "GET":
+        return create_presigned_download(event)
 
     try:
         # POST /{resource}
