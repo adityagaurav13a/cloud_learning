@@ -1,6 +1,7 @@
+---
 name: Deploy Judicial Solutions (Prod)
 
-on:
+"on":
   push:
     branches:
       - main
@@ -13,7 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Python setup (for tests)
+      - name: Show execution directory
+        run: |
+          echo "CI started"
+          pwd
+          ls -la
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -24,30 +30,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-test.txt
 
-      # SMOKE TESTS (fail fast)
       - name: Run smoke tests
         run: |
-          pytest pytest/smoke -v
-
-      # SANITY TESTS and HTML REPORT
-      - name: Run sanity tests
-        run: |
-          mkdir -p reports
-          pytest pytest/sanity -v \
-            --html=reports/sanity-report.html \
+          pytest pytest/smoke/test_smoke.py -v \
+            --html=pytest/smoke/smoke-report.html \
             --self-contained-html
 
-      # Upload report
+      - name: Run sanity tests
+        run: |
+          pytest pytest/sanity/sanity_test.py -v \
+            --html=pytest/sanity/sanity-report.html \
+            --self-contained-html
+
+      - name: Upload smoke test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-report
+          path: pytest/smoke/smoke-report.html
+
       - name: Upload sanity test report
         uses: actions/upload-artifact@v4
         with:
-          name: sanity-html-report
-          path: reports/sanity-report.html
+          name: sanity-test-report
+          path: pytest/sanity/sanity-report.html
 
-      - name: Debug region
-        run: echo "AWS region is set"
-
-      # AWS auth (deploy only if tests passed)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -55,7 +61,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Deploy to S3
       - name: Deploy static site to S3
         run: |
           aws s3 sync "Judicial Solutions/" s3://${{ secrets.S3_BUCKET }} \
@@ -63,9 +68,7 @@ jobs:
             --exclude ".git/*" \
             --exclude ".github/*"
 
-      # 🔄 CloudFront invalidation
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
