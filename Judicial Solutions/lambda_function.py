@@ -139,6 +139,13 @@ def create_resource_item(resource: str, payload: Dict[str, Any]) -> Dict[str, An
         "read": False,
     }
 
+    # On UPDATE / STATUS CHANGE
+    base["audit"] = {
+    "action_type": "CREATE",
+    "updated_by": payload.get("updated_by", "system"),
+    "updated_at": now_iso(),
+    }
+
     # Resource-specific defaults
     if resource == "forms":
         base.update(
@@ -245,10 +252,27 @@ def update_read_flag(resource: str, item_id: str, read_flag: bool) -> Optional[D
 
 def delete_resource_item(resource: str, item_id: str) -> bool:
     table = choose_table(resource)
-    existing = table.get_item(Key={"id": item_id}).get("Item")
-    if not existing:
-        logger.info("Delete requested for %s id=%s but item not found", table.table_name, item_id)
-        return False
+    # existing = table.get_item(Key={"id": item_id}).get("Item")
+    # if not existing:
+    #     logger.info("Delete requested for %s id=%s but item not found", table.table_name, item_id)
+    #     return False
+    if resource == "forms":
+        table.update_item(
+            Key={"id": item_id},
+            UpdateExpression="""
+                SET is_deleted = :d,
+                    audit = :a
+            """,
+            ExpressionAttributeValues={
+                ":d": True,
+                ":a": {
+                    "action_type": "DELETE",
+                    "updated_by": "admin",
+                    "updated_at": now_iso(),
+                },
+            },
+        )
+        return True
     table.delete_item(Key={"id": item_id})
     logger.info("Deleted %s id=%s from table %s", resource, item_id, table.table_name)
     return True
@@ -256,6 +280,14 @@ def delete_resource_item(resource: str, item_id: str) -> bool:
 def partial_update_item(resource: str, item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     table = choose_table(resource)
     updates.pop("id", None)
+
+    # UPDATE / STATUS_CHANGE audit log
+    updates["audit"] = {
+    "action_type": "UPDATE",
+    "updated_by": updates.get("updated_by", "admin"),
+    "updated_at": now_iso(),
+    }
+
     if not updates:
         return None
 
@@ -356,6 +388,9 @@ def route(event: Dict[str, Any]) -> Dict[str, Any]:
             limit = int(qs.get("limit", "50"))
             last = qs.get("last")
             items, last_key = list_resource_items(resource, limit=limit, last=last)
+            # FILTER SOFT-DELETED ITEMS (ONLY FOR FORMS)
+            if resource == "forms":
+                items = [item for item in items if not item.get("is_deleted", False)]
             return make_response(
                 200,
                 {"items": items, "last": json.dumps(last_key) if last_key else None},
