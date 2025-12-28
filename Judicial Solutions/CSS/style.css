@@ -717,6 +717,20 @@ body {
   text-align: center;
 }
 
+/* Align and space subtitle under "Admin Login" */
+.admin-page .login-section h2 {
+  margin-bottom: 10px;            /* smaller gap above subtitle */
+}
+
+.admin-page .login-section .text-muted {
+  text-align: center;             /* align with heading */
+  margin-bottom: 25px;            /* space before button */
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  display: block;
+}
+
+
 .admin-page .input-group {
   margin-bottom: 20px;
   position: relative;
@@ -891,6 +905,7 @@ body {
   .admin-page .game-section h3 {
     font-size: 1.2rem;
   }
+
 }
 
 /* Highlight winning cells */
