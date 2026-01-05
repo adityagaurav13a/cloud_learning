@@ -2,6 +2,7 @@
 
 /* Layout */
 #wrapper {
+  display: flex;
   min-height: 100vh;
 }
 
@@ -9,10 +10,7 @@
 #sidebar {
   width: 240px;
   min-height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  position: relative; /* ✅ FIX */
   display: flex;
   flex-direction: column;
 }
@@ -25,6 +23,9 @@
 /* Mobile sidebar */
 @media (max-width: 991.98px) {
   #sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0; 
     margin-left: -240px;
     transition: margin 0.2s ease-in-out;
     z-index: 1050;
