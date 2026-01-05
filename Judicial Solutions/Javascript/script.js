@@ -183,37 +183,74 @@ cells.forEach(cell => {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    const header = document.getElementById("jtHeader");
-    const navbar = document.getElementById("navbar");
-    const hamburger = document.getElementById("hamburger");
+  const header = document.getElementById("jtHeader"); // judiciary only
+  const navbar = document.getElementById("navbar");
+  const hamburger = document.getElementById("hamburger");
 
+  /* ===============================
+     JUDICIARY HEADER SCROLL (SAFE)
+     =============================== */
+  if (header) {
     let lastScroll = 0;
 
     window.addEventListener("scroll", () => {
-        const currentScroll = window.pageYOffset;
+      const currentScroll = window.pageYOffset;
 
-        if (currentScroll > lastScroll) {
-            // Scrolling DOWN → hide
-            header.classList.add("header-hidden");
+      if (currentScroll > lastScroll) {
+        header.classList.add("header-hidden");
+      } else {
+        header.classList.remove("header-hidden");
+
+        if (currentScroll > 60) {
+          header.classList.add("header-small");
         } else {
-            // Scrolling UP → show
-            header.classList.remove("header-hidden");
-
-            if (currentScroll > 60) {
-                header.classList.add("header-small");
-            } else {
-                header.classList.remove("header-small");
-            }
+          header.classList.remove("header-small");
         }
+      }
 
-        lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+      lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+    });
+  }
+
+  /* ===============================
+     MOBILE MENU UX (GLOBAL)
+     =============================== */
+  if (navbar && hamburger) {
+
+    // Toggle menu
+    hamburger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navbar.classList.toggle("show");
     });
 
-    // MOBILE MENU TOGGLE
-    hamburger.addEventListener("click", () => {
-        navbar.classList.toggle("show");
+    // Hide menu on ANY scroll
+    window.addEventListener("scroll", () => {
+      if (navbar.classList.contains("show")) {
+        navbar.classList.remove("show");
+      }
     });
+
+    // Hide menu on outside click
+    document.addEventListener("click", (e) => {
+      if (
+        navbar.classList.contains("show") &&
+        !navbar.contains(e.target) &&
+        !hamburger.contains(e.target)
+      ) {
+        navbar.classList.remove("show");
+      }
+    });
+
+    // Hide menu when a link is clicked
+    navbar.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", () => {
+        navbar.classList.remove("show");
+      });
+    });
+  }
+
 });
+
 
 
 const API_BASE = "https://86isfklr9k.execute-api.ap-south-1.amazonaws.com";
