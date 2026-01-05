@@ -50,6 +50,8 @@ body {
 
 /* Logo */
 .logo {
+  text-decoration: none;
+  color: inherit;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1244,3 +1246,61 @@ body {
     100% { transform: scale(1); opacity: 1; }
 }
 
+/* =========================================================
+   CONSOLIDATED MOBILE HEADER FIX
+   Works for ALL public pages
+   ========================================================= */
+@media (max-width: 768px) {
+
+  /* Always keep header visible */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 5000;
+    padding: 12px 16px;
+  }
+
+  /* Mobile navbar (hidden by default) */
+  .navbar {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 12px;
+    background: #222;
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 6000;
+  }
+
+  /* Show navbar when toggled */
+  .navbar.show {
+    display: block;
+  }
+
+  .navbar ul {
+    flex-direction: column;
+    gap: 14px;
+    margin: 0;
+  }
+
+  /* Hamburger visible on mobile */
+  .hamburger {
+    display: block;
+  }
+
+  /* Universal hero offset so header never overlaps */
+  .hero,
+  .civil-hero,
+  .criminal-hero,
+  .family-hero,
+  .corporate-hero,
+  .legal-hero {
+    padding-top: 90px;
+  }
+
+  /* Ensure hero content never covers header */
+  .hero .overlay,
+  .glass {
+    z-index: 1;
+  }
+}
