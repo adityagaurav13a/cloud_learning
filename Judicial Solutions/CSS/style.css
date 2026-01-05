@@ -57,6 +57,13 @@ body {
   gap: 12px;
 }
 
+.logo:visited,
+.logo:hover,
+.logo:active {
+  color: inherit;
+  text-decoration: none;
+}
+
 .logo-icon {
   font-size: 2rem;   /* Bigger logo */
   color: #003366;
@@ -1250,7 +1257,7 @@ body {
    CONSOLIDATED MOBILE HEADER FIX
    Works for ALL public pages
    ========================================================= */
-@media (max-width: 768px) {
+@media (max-width: 850px) {
 
   /* Always keep header visible */
   .site-header {
