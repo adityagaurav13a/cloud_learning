@@ -1183,11 +1183,41 @@ function updateLeadsSectionTable(forms) {
                       data-bs-toggle="dropdown">
                 More
               </button>
+
               <ul class="dropdown-menu">
-                <li><a class="dropdown-item btn-lead-complete" data-id="${id}" href="#">Complete</a></li>
-                <li><a class="dropdown-item btn-lead-reopen" data-id="${id}" href="#">Reopen</a></li>
+                <li>
+                  <button
+                    class="dropdown-item btn-schedule-from-lead"
+                    data-id="${id}">
+                    Schedule Appointment
+                  </button>
+                </li>
+
+                <li>
+                  <a class="dropdown-item btn-lead-complete"
+                    data-id="${id}"
+                    href="#">
+                    Complete
+                  </a>
+                </li>
+
+                <li>
+                  <a class="dropdown-item btn-lead-reopen"
+                    data-id="${id}"
+                    href="#">
+                    Reopen
+                  </a>
+                </li>
+
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger btn-lead-delete" data-id="${id}" href="#">Delete</a></li>
+
+                <li>
+                  <a class="dropdown-item text-danger btn-lead-delete"
+                    data-id="${id}"
+                    href="#">
+                    Delete
+                  </a>
+                </li>
               </ul>
             </div>
           </td>
@@ -1434,6 +1464,33 @@ document.addEventListener("DOMContentLoaded", () => {
         if (submitBtn) submitBtn.textContent = "Save appointment";
       }
     });
+    // Appointment mode → meeting toggle (GLOBAL)
+    (function setupAppointmentModeToggle() {
+      const modeSelect = document.getElementById("appointment-mode");
+      const meetingLaterGroup = document.getElementById("meetingLaterGroup");
+      const meetingLinkGroup = document.getElementById("meetingLinkGroup");
+      const laterToggle = document.getElementById("meeting-later-toggle");
+      const meetingLinkInput = document.getElementById("appointment-meeting-link");
+
+      if (!modeSelect || !meetingLaterGroup || !meetingLinkGroup) return;
+
+      function handleModeChange() {
+        if (modeSelect.value === "MEETING") {
+          meetingLaterGroup.classList.remove("d-none");
+          meetingLinkGroup.classList.remove("d-none");
+        } else {
+          meetingLaterGroup.classList.add("d-none");
+          meetingLinkGroup.classList.add("d-none");
+          if (laterToggle) laterToggle.checked = false;
+          if (meetingLinkInput) meetingLinkInput.value = "";
+        }
+      }
+
+      modeSelect.addEventListener("change", handleModeChange);
+
+      // run once for edit / reschedule / programmatic open
+      handleModeChange();
+    })();
   }
 
   // Saved cases: real backend data (Step 7A)
@@ -1469,6 +1526,7 @@ async function initPostsSection() {
 
   setupPostsTableActions();
 }
+
 
 /* ========== Sidebar Navigation ========== */
 function setupSidebarNavigation() {
@@ -1785,6 +1843,21 @@ async function loadAppointmentsFromApi() {
   updateAppointmentsChartFromList();
 }
 
+function renderAppointmentStatus(a) {
+  if (a.status !== "Confirmed") return a.status;
+  if (a.mode === "MEETING") {
+    if (a.meeting_link === "LINK_PENDING") {
+      return "Confirmed / Link will be shared";
+    }
+    return `Confirmed / <a href="${a.meeting_link}" target="_blank">Join Meeting</a>`;
+  }
+  if (a.mode === "CALL")
+    return `Confirmed / ${a.contact_info || "-"}`;
+  if (a.mode === "IN_PERSON")
+    return `Confirmed / ${a.location || "Office"}`;
+  return "Confirmed";
+}
+
 function renderAppointmentsTable() {
   const tbody = document.getElementById("appointments-table-body");
   if (!tbody) return;
@@ -1797,13 +1870,13 @@ function renderAppointmentsTable() {
           <td>${a.client}</td>
           <td>${caseType}</td>
           <td>${formatAppointmentDate(a.datetime)}</td>
-          <td>${a.mode}</td>
+          <td>${a.mode === "IN_PERSON" ? "In Person" : a.mode === "CALL" ? "Phone Call" : "Video Meeting"}</td>
           <td>
             <span
               class="badge appt-status-badge bg-${statusColor(a.status)}"
               data-id="${a.id}"
             >
-              ${a.status}
+              ${renderAppointmentStatus(a)}
             </span>
           </td>
           <td class="text-end">
@@ -1858,7 +1931,10 @@ function setupAppointmentTableActions() {
       const appt = appointments.find((a) => a.id === id);
       if (!appt) return;
 
-      appt.status = cycleAppointmentStatus(appt.status);
+      const newStatus = cycleAppointmentStatus(appt.status);
+      const updated = await updateAppointment(id, { status: newStatus });
+      if (!updated) return;
+      appt.status = updated.status;
 
       // later: send update to backend with buildAppointmentUpdatePayload(appt)
       // console.log("Appointment status update:", buildAppointmentUpdatePayload(appt));
@@ -1893,33 +1969,75 @@ function setupAppointmentTableActions() {
   });
 }
 
+// function openEditAppointment(id) {
+
+//   const appt = appointments.find((a) => a.id === id);
+//   if (!appt) return;
+
+//   editingAppointmentId = id;
+//   // restore lead info  
+//   document.getElementById("appointment-lead-id").value = appt.lead_id || "";
+//   document.getElementById("appointment-lead-name").value = appt.client || "";
+
+//   const form = document.getElementById("appointment-form");
+//   if (!form) return;
+//   document.getElementById("appointment-lead").value = appt.lead_id || "";
+//   document.getElementById("appointment-type").value =
+//     appt.case_type || appt.type || "";
+//   document.getElementById("appointment-datetime").value = appt.datetime ? appt.datetime.slice(0, 16) : "";
+//   document.getElementById("appointment-mode").value = appt.mode || "IN_PERSON";
+//   document.getElementById("appointment-status").value =
+//     appt.status || "Pending";
+
+//   const title = document.getElementById("appointmentModalLabel");
+//   if (title) title.textContent = "Edit / Reschedule Appointment";
+
+//   const submitBtn = form.querySelector('button[type="submit"]');
+//   if (submitBtn) submitBtn.textContent = "Update appointment";
+
+//   const modalEl = document.getElementById("appointmentModal");
+//   const modal = bootstrap.Modal.getOrCreateInstance(
+//     document.getElementById("appointmentModal")
+//   );
+//   modal.show();
+// }
 function openEditAppointment(id) {
   const appt = appointments.find((a) => a.id === id);
   if (!appt) return;
 
   editingAppointmentId = id;
 
-  const form = document.getElementById("appointment-form");
-  if (!form) return;
+  const leadNameEl = document.getElementById("appointment-lead-name");
+  const leadIdEl = document.getElementById("appointment-lead-id");
+  const typeEl = document.getElementById("appointment-type");
+  const datetimeEl = document.getElementById("appointment-datetime");
+  const modeEl = document.getElementById("appointment-mode");
+  const statusEl = document.getElementById("appointment-status");
 
-  document.getElementById("appointment-client").value = appt.client || "";
-  document.getElementById("appointment-type").value =
-    appt.case_type || appt.type || "";
-  document.getElementById("appointment-datetime").value = appt.datetime || "";
-  document.getElementById("appointment-mode").value = appt.mode || "In person";
-  document.getElementById("appointment-status").value =
-    appt.status || "Pending";
+  if (!leadNameEl || !leadIdEl || !typeEl || !datetimeEl || !modeEl || !statusEl) {
+    console.error("Appointment modal elements missing in DOM");
+    return;
+  }
 
-  const title = document.getElementById("appointmentModalLabel");
-  if (title) title.textContent = "Edit / Reschedule Appointment";
+  const modeSelect = document.getElementById("appointment-mode");
+  const laterWrapper = document.getElementById("meeting-later-wrapper");
 
-  const submitBtn = form.querySelector('button[type="submit"]');
-  if (submitBtn) submitBtn.textContent = "Update appointment";
+  modeSelect.addEventListener("change", () => {
+    laterWrapper.style.display =
+      modeSelect.value === "MEETING" ? "block" : "none";
+  });
+
+  leadNameEl.value = appt.client || "";
+  leadIdEl.value = appt.lead_id || "";
+  typeEl.value = appt.case_type || "";
+  datetimeEl.value = appt.datetime ? appt.datetime.slice(0, 16) : "";
+  modeEl.value = appt.mode || "IN_PERSON";
+  statusEl.value = appt.status || "Pending";
 
   const modalEl = document.getElementById("appointmentModal");
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
+
 
 function setupAppointmentForm() {
   const form = document.getElementById("appointment-form");
@@ -1928,23 +2046,54 @@ function setupAppointmentForm() {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const client = document.getElementById("appointment-client").value.trim();
     const type = document.getElementById("appointment-type").value.trim();
     const datetimeRaw = document.getElementById("appointment-datetime").value;
     const mode = document.getElementById("appointment-mode").value;
     const status = document.getElementById("appointment-status").value;
+    const location = document.getElementById("appointment-location")?.value;
 
-    if (!client || !type || !datetimeRaw) {
+    if (!type || !datetimeRaw) {
       return;
     }
 
+    const leadId = document.getElementById("appointment-lead-id").value;
+    if (!leadId) {
+      alert("Please schedule appointment from a lead.");
+      return;
+    }
+
+    const selectedLead = allLeadsForms.find(l => l.id === leadId);
+    if (!selectedLead) {
+      alert("Lead data not found.");
+      return;
+    }
+
+    const shareLater = document.getElementById("meeting-later-toggle")?.checked;
+
     const payload = {
-      client,
+      lead_id: leadId,
+      client: document.getElementById("appointment-lead-name").value,
       case_type: type,
       datetime: datetimeRaw,
       mode,
       status,
     };
+
+    if (mode === "IN_PERSON") {
+      payload.location = location || "Office";
+    }
+
+    if (mode === "CALL") {
+      payload.contact_info = selectedLead.phone || selectedLead.email || "";
+    }
+
+    if (mode === "MEETING") {
+    if (shareLater) {
+      payload.meeting_link = "LINK_PENDING";
+    } else {
+      payload.meeting_link = generateMeetingLink();
+    }
+  }
 
     let result = null;
 
@@ -2079,6 +2228,10 @@ if (leadsCanvas && window.Chart) {
   }
 }
 
+function generateMeetingLink() {
+  return `https://meet.jit.si/JudicialSolutions-${Date.now()}`;
+}
+
 /* ========== Case Research (Mock API) ========== */
 function setupCaseSearchMock() {
   const form = document.getElementById("case-search-form");
@@ -2107,6 +2260,9 @@ function setupCaseSearchMock() {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    const leadSelect = document.getElementById("appointment-lead");
+    const leadId = leadSelect?.value;
+
     const query = document.getElementById("case-query").value.trim();
     const year = document.getElementById("case-year").value.trim();
     const court = document.getElementById("case-court").value.trim();
@@ -2193,5 +2349,33 @@ function setupCaseSearchMock() {
   }
 });
 
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-schedule-from-lead");
+    if (!btn) return;
 
+    e.preventDefault();
+
+    const leadId = btn.dataset.id;
+    const lead = allLeadsForms.find(l => String(l.id) === String(leadId));
+    if (!lead) {
+      alert("Lead not found");
+      return;
+    }
+
+    // Fill modal fields
+    document.getElementById("appointment-lead-name").value = lead.name;
+    document.getElementById("appointment-lead-id").value = lead.id;
+
+    // Optional: auto-fill case type
+    const caseInput = document.getElementById("appointment-type");
+    if (caseInput && lead.case_type) {
+      caseInput.value = lead.case_type;
+    }
+
+    // Open modal
+    const modal = bootstrap.Modal.getOrCreateInstance(
+      document.getElementById("appointmentModal")
+    );
+    modal.show();
+  });
 }
