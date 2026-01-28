@@ -1,0 +1,18 @@
+#Assignment 1 : Install Terraform on your local machine
+
+## Windows Steps:
+- 1. Download terraform.exe ZIP from https://developer.hashicorp.com/terraform/downloads
+- 2. Extract to C:\terraform\
+- 3. Add C:\terraform to system PATH
+- 4. Verify: terraform --version
+
+# how to add to system PATH on Windows:
+- Win+R → sysdm.cpl → Advanced → Environment Variables
+- System variables → Path → Edit → New → C:\terraform (same path where terraform.exe is located)
+- Restart terminal → terraform --version
+
+
+## Linux/macOS Steps:
+- Download ZIP for your OS/architecture
+- sudo unzip terraform_*.zip -d /usr/local/bin/
+- Verify: terraform --version
