@@ -1,0 +1,20 @@
+# Assignment 2 : Initialize a Terraform configuration in a new directory.
+
+## Initialize New Directory:
+- mkdir my-terraform-project && cd my-terraform-project
+- Create main.tf with provider block
+- terraform init
+
+# ## sample main.tf content:
+# sample_main_tf: |
+#   resource "null_resource" "example" {
+#     provisioner "local-exec" {
+#       command = "echo 'Hello, Terraform!'"
+#     }
+#   }
+
+# commands:
+#   - terraform init
+#   - terraform validate # Optional: validate the configuration
+#   - terraform plan
+#   - terraform apply
