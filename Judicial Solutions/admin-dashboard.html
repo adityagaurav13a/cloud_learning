@@ -18,40 +18,6 @@
 
 <body>
 
-    <!-- ============ Appointments Section ============ -->
-    <section id="appointments-section" class="admin-section d-none">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h5>Appointments</h5>
-                <p class="text-muted mb-0">Consultation bookings and schedule.</p>
-            </div>
-            <button class="btn btn-primary btn-sm" id="addAppointmentBtn" type="button" data-bs-toggle="modal"
-                data-bs-target="#appointmentModal">
-                <i class="bi bi-plus-lg me-1"></i>Add manual appointment
-            </button>
-        </div>
-
-        <div class="card border-0 shadow-sm">
-            <div class="card-body table-responsive">
-                <table class="table table-sm align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Client</th>
-                            <th>Case Type</th>
-                            <th>Date & Time</th>
-                            <th>Mode</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="appointments-table-body">
-                        <!-- JS injects rows -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </section>
-
     <!-- Appointment Modal -->
     <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel"
         aria-hidden="true">
@@ -507,7 +473,39 @@
                     </div>
                 </section>
 
+                <!-- ============ Appointments Section ============ -->
+                <section id="appointments-section" class="admin-section d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5>Appointments</h5>
+                            <p class="text-muted mb-0">Consultation bookings and schedule.</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="addAppointmentBtn" type="button" data-bs-toggle="modal"
+                            data-bs-target="#appointmentModal">
+                            <i class="bi bi-plus-lg me-1"></i>Add manual appointment
+                        </button>
+                    </div>
 
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Case Type</th>
+                                        <th>Date & Time</th>
+                                        <th>Mode</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appointments-table-body">
+                                    <!-- JS injects rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- ============ Services Section ============ -->
                 <section id="services-section" class="admin-section d-none">
@@ -545,7 +543,8 @@
                 </section>
 
                 <!--=========== Files & Templates ============== -->
-                <section id="files-section" class="card">
+                <!-- <section id="files-section" class="card"> -->
+                    <section id="files-preview-card" class="card">
                     <div class="card-header">
                         <h2>Files & Templates</h2>
                         <button id="addFileBtn" class="btn btn-primary btn-sm">
@@ -905,6 +904,7 @@
 
                 <!-- ============ Files Section ============ -->
                 <section id="files-section" class="admin-section d-none">
+                    <div class="card border-0 shadow-sm"></div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <h5>Files & Templates</h5>
@@ -927,7 +927,7 @@
                                         <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="files-table-body">
+                                <tbody class="files-table-body">
                                     <!-- JS injects -->
                                 </tbody>
                             </table>
