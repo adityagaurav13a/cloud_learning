@@ -1,0 +1,18 @@
+---
+- name: Install and start nginx # - is use for list
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install Nginx
+      dnf:
+        name: nginx
+        state: present
+      #shell: apt install nginx | its same what we mentioned above with apt
+    
+    - name: Start Nginx
+      #shell: systectl start nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
