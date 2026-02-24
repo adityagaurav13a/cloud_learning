@@ -11,7 +11,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o chat_server .
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=builder /app/chat_server /chat_server
+
 EXPOSE 8080
+
 # Run as non-root user (distroless nonroot variant enforces this)
 USER nonroot:nonroot
 # Launch the server
