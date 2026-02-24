@@ -1,23 +1,17 @@
-FROM ubuntu:22.04
+FROM python:3.12-slim
+
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-venv && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
+# No need for apt-get python3/pip/venv — already included in python:3.12-slim
 COPY requirements.txt /app/
-RUN python3 -m venv /app/venv1 && \
-    /app/venv1/bin/pip install --no-cache-dir -r requirements.txt
 
-ENV PATH="/app/venv1/bin:$PATH"
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY devops/ /app/
 
-# migrate at build time — SQLite db baked into image
-RUN python3 manage.py migrate
+RUN python manage.py migrate
 
 EXPOSE 8000
 
-# pure exec form — no shell, no bash, no &&
-ENTRYPOINT ["python3", "manage.py"]
+ENTRYPOINT ["python", "manage.py"]
 CMD ["runserver", "0.0.0.0:8000"]
