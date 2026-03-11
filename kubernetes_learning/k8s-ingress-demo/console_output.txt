@@ -1,0 +1,131 @@
+========================================================
+  K8s Ingress Demo — Verification Output
+  Date: March 2026
+  Environment: Minikube (Docker driver) on WSL2
+========================================================
+
+
+------------------------------------------------------------
+1. kubectl describe ingress demo-ingress
+------------------------------------------------------------
+
+Name:             demo-ingress
+Namespace:        default
+Address:          192.168.49.2
+Ingress Class:    nginx
+Default backend:  <default>
+
+Rules:
+  Host        Path     Backends
+  ----        ----     --------
+  demo.local
+              /        frontend-service:80   (10.244.0.63:5000)
+              /users   users-service:80      (10.244.0.61:5001)
+              /orders  orders-service:80     (10.244.0.62:5002)
+
+Annotations:  nginx.ingress.kubernetes.io/rewrite-target: /
+
+Events:
+  Type    Reason  Age                From                      Message
+  ----    ------  ----               ----                      -------
+  Normal  Sync    11m (x2 over 11m)  nginx-ingress-controller  Scheduled for sync
+
+
+------------------------------------------------------------
+2. kubectl describe svc frontend-service
+------------------------------------------------------------
+
+Name:                     frontend-service
+Namespace:                default
+Selector:                 app=frontend
+Type:                     NodePort
+IP:                       10.101.59.193
+Port:                     80/TCP
+TargetPort:               5000/TCP
+NodePort:                 30080/TCP
+Endpoints:                10.244.0.63:5000
+Session Affinity:         None
+External Traffic Policy:  Cluster
+
+
+------------------------------------------------------------
+3. kubectl get ingress
+------------------------------------------------------------
+
+NAME           CLASS   HOSTS        ADDRESS        PORTS   AGE
+demo-ingress   nginx   demo.local   192.168.49.2   80      106s
+
+
+------------------------------------------------------------
+4. kubectl get svc | grep service
+------------------------------------------------------------
+
+NAME               TYPE       CLUSTER-IP        PORT(S)        AGE
+frontend-service   NodePort   10.101.59.193     80:30080/TCP   101s
+orders-service     NodePort   10.97.77.169      80:30082/TCP   101s
+users-service      NodePort   10.108.120.114    80:30081/TCP   101s
+
+
+------------------------------------------------------------
+5. kubectl get pods
+------------------------------------------------------------
+
+NAME                        READY   STATUS    RESTARTS   AGE
+frontend-55f8f77fd8-dqwnp   1/1     Running   0          9m25s
+orders-7b6844bc99-8zxck     1/1     Running   0          10m
+users-57c78b56f9-dtf7x      1/1     Running   0          10m
+
+
+------------------------------------------------------------
+6. curl -H "Host: demo.local" http://192.168.49.2/
+------------------------------------------------------------
+
+Response: 200 OK
+Title:    Demo Shop
+Service:  frontend-service (pod port 5000)
+
+Confirms → Ingress routing "/" to frontend-service ✅
+
+
+------------------------------------------------------------
+7. curl -H "Host: demo.local" http://192.168.49.2/users
+------------------------------------------------------------
+
+Response: 200 OK
+Title:    Users Service
+Service:  users-service (pod port 5001)
+Pod:      users-57c78b56f9-dtf7x
+
+Confirms → Ingress routing "/users" to users-service ✅
+
+
+------------------------------------------------------------
+8. curl -H "Host: demo.local" http://192.168.49.2/orders
+------------------------------------------------------------
+
+Response: 200 OK
+Title:    Orders Service
+Service:  orders-service (pod port 5002)
+Pod:      orders-7b6844bc99-8zxck
+
+Confirms → Ingress routing "/orders" to orders-service ✅
+
+
+========================================================
+  Summary
+========================================================
+
+  Component              Status
+  ---------              ------
+  Ingress Controller     Running (ingress-nginx namespace)
+  demo-ingress           ADDRESS = 192.168.49.2 ✅
+  frontend pod           1/1 Running ✅
+  users pod              1/1 Running ✅
+  orders pod             1/1 Running ✅
+  Path routing /         frontend-service:5000 ✅
+  Path routing /users    users-service:5001 ✅
+  Path routing /orders   orders-service:5002 ✅
+
+  All 3 services successfully routed through single Nginx Ingress.
+
+========================================================

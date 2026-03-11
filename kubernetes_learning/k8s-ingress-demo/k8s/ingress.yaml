@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.local                      # add this to /etc/hosts
+    http:
+      paths:
+      - path: /                           # demo.local/        → frontend
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+      - path: /users                      # demo.local/users   → users service
+        pathType: Prefix
+        backend:
+          service:
+            name: users-service
+            port:
+              number: 80
+      - path: /orders                     # demo.local/orders  → orders service
+        pathType: Prefix
+        backend:
+          service:
+            name: orders-service
+            port:
+              number: 80
