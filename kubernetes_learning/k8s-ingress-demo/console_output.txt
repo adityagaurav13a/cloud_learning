@@ -128,4 +128,17 @@ Confirms → Ingress routing "/orders" to orders-service ✅
 
   All 3 services successfully routed through single Nginx Ingress.
 
+
+
+========================================================
+  From the setup.sh script
+========================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ALL DONE! Open these URLs in browser:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Frontend : http://127.0.0.1:34097
+ Users    : http://127.0.0.1:43429
+ Orders   : http://127.0.0.1:34521
+
 ========================================================
