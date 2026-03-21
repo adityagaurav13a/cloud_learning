@@ -11,3 +11,11 @@
 # Provider binaries
 .terraform/providers/
 
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
