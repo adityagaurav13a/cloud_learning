@@ -713,3 +713,335 @@ def lambda_handler(event, context):
     
     return {'statusCode': 200}
 ```
+
+---
+
+## SECTION 3 — DYNAMODB (30 Questions)
+
+### Core Theory
+
+**Q31. What is the difference between eventually consistent and strongly consistent reads in DynamoDB?**
+
+```
+Eventually Consistent (default):
+  Read might return stale data (up to 1 second old)
+  Uses any replica — could be slightly behind
+  Cost: 0.5 RCU per 4KB
+  
+Strongly Consistent:
+  Always returns latest data
+  Routes to leader node only
+  Cost: 1 RCU per 4KB (2x expensive)
+  Not available for GSIs
+
+When to use strongly consistent:
+  - Reading immediately after write
+  - Financial transactions
+  - Inventory management
+```
+
+```python
+# Eventually consistent (default, cheaper)
+table.get_item(Key={'userId': 'u1'})
+
+# Strongly consistent (latest data, 2x cost)
+table.get_item(
+    Key={'userId': 'u1'},
+    ConsistentRead=True
+)
+```
+
+---
+
+**Q32. Explain DynamoDB's read/write capacity units with calculations.**
+
+```
+RCU (Read Capacity Unit):
+  1 RCU = 1 strongly consistent read/second for items ≤ 4KB
+  1 RCU = 2 eventually consistent reads/second for items ≤ 4KB
+  
+  Example: item size 10KB, strongly consistent
+  RCUs needed = ceil(10KB / 4KB) = 3 RCUs per read
+
+WCU (Write Capacity Unit):
+  1 WCU = 1 write/second for items ≤ 1KB
+  
+  Example: item size 3.5KB
+  WCUs needed = ceil(3.5KB / 1KB) = 4 WCUs per write
+
+Transactional reads/writes:
+  2x the normal RCU/WCU cost
+```
+
+---
+
+**Q33. What is DynamoDB Accelerator (DAX) and when do you use it?**
+
+```
+DynamoDB → DAX (in-memory cache) → Application
+
+DAX:
+  - In-memory cache for DynamoDB
+  - Microsecond read latency (vs milliseconds)
+  - Item cache: caches individual GetItem results
+  - Query cache: caches Query/Scan results
+  - Write-through: writes go to both DAX and DynamoDB
+  
+When to use:
+  - Read-heavy workloads
+  - Same items read repeatedly
+  - Need microsecond latency
+  
+When NOT to use:
+  - Write-heavy workloads
+  - Strongly consistent reads required (DAX is eventually consistent)
+  - Rarely read items
+```
+
+---
+
+**Q34. What is DynamoDB's item size limit and what do you do if you exceed it?**
+
+- Max item size: **400 KB**
+
+Solutions if exceeded:
+```
+Option 1: Store large attribute in S3, store S3 key in DynamoDB
+  DynamoDB item: {userId: "u1", profileS3Key: "profiles/u1.json"}
+  Large data: stored in S3
+
+Option 2: Compress the attribute
+  import gzip, base64
+  compressed = base64.b64encode(gzip.compress(large_data.encode()))
+  table.put_item(Item={'userId': 'u1', 'data': compressed})
+
+Option 3: Split item across multiple items
+  {userId: "u1", chunk: "1", data: "first 200KB"}
+  {userId: "u1", chunk: "2", data: "next 200KB"}
+```
+
+---
+
+**Q35. Explain DynamoDB Transactions.**
+
+```python
+# All operations succeed or all fail — ACID transactions
+dynamodb = boto3.client('dynamodb')
+
+# Transfer money between accounts
+dynamodb.transact_write_items(
+    TransactItems=[
+        {
+            'Update': {
+                'TableName': 'Accounts',
+                'Key': {'accountId': {'S': 'acc-1'}},
+                'UpdateExpression': 'SET balance = balance - :amount',
+                'ConditionExpression': 'balance >= :amount',  # don't go negative
+                'ExpressionAttributeValues': {':amount': {'N': '100'}}
+            }
+        },
+        {
+            'Update': {
+                'TableName': 'Accounts',
+                'Key': {'accountId': {'S': 'acc-2'}},
+                'UpdateExpression': 'SET balance = balance + :amount',
+                'ExpressionAttributeValues': {':amount': {'N': '100'}}
+            }
+        }
+    ]
+)
+```
+
+- Max 100 items per transaction
+- Costs 2x normal read/write capacity
+- Use for: financial operations, inventory, multi-table consistency
+
+---
+
+### Practical Questions
+
+**Q36. Design a DynamoDB table for a chat application with these access patterns:**
+- Get all messages in a room
+- Get messages in a room after a timestamp
+- Get a specific message
+
+```
+Table: Messages
+PK: roomId (partition key)
+SK: timestamp#messageId (sort key — composite for uniqueness)
+
+Access patterns:
+- All messages in room:
+  Query PK = "room-1"
+  
+- Messages after timestamp:
+  Query PK = "room-1" AND SK > "2024-03-01T10:00:00"
+  
+- Specific message:
+  GetItem PK = "room-1" SK = "2024-03-01T10:05:23#msg-uuid"
+
+Items:
+{
+  "roomId": "room-1",
+  "timestamp#messageId": "2024-03-01T10:05:23#abc-123",
+  "userId": "user-1",
+  "message": "Hello!",
+  "type": "text"
+}
+```
+
+---
+
+**Q37. Your DynamoDB table is being throttled despite having enough WCU. Why?**
+
+```
+Scenario:
+  Provisioned: 100 WCU
+  Actual usage: 80 WCU average
+  Still throttled
+
+Root cause: Hot partition
+
+DynamoDB distributes WCU across partitions
+If you have 10 partitions: each gets 10 WCU
+If 90 WCU hits ONE partition → throttled (10 WCU limit on that partition)
+
+Diagnosis:
+  CloudWatch → DynamoDB → ConsumedWriteCapacityUnits
+  Look for spikes on specific operations
+
+Fix:
+  1. Better partition key (higher cardinality)
+  2. Write sharding — add random suffix
+  3. Switch to on-demand — AWS manages partition scaling
+  4. Use DynamoDB Streams + batch writes to spread load
+```
+
+---
+
+**Q38. How do you implement pagination in DynamoDB?**
+
+```python
+def get_all_users(table, page_size=25, last_key=None):
+    kwargs = {
+        'Limit': page_size
+    }
+    
+    # Continue from where we left off
+    if last_key:
+        kwargs['ExclusiveStartKey'] = last_key
+    
+    response = table.scan(**kwargs)
+    
+    items = response['Items']
+    
+    # LastEvaluatedKey = None means no more pages
+    next_key = response.get('LastEvaluatedKey')
+    
+    return items, next_key
+
+# Usage:
+items, next_key = get_all_users(table)
+# Pass next_key to client — client sends it back for next page
+
+# API pattern:
+# GET /users?pageToken=<base64 encoded LastEvaluatedKey>
+# Response: {items: [...], nextPageToken: "..."}
+```
+
+---
+
+**Q39. How do you implement optimistic locking in DynamoDB?**
+
+```python
+# Prevent lost updates when multiple processes update same item
+
+def update_with_lock(table, user_id, new_name, current_version):
+    try:
+        table.update_item(
+            Key={'userId': user_id},
+            UpdateExpression='SET #name = :name, version = version + :inc',
+            ConditionExpression='version = :current_version',
+            ExpressionAttributeNames={'#name': 'name'},
+            ExpressionAttributeValues={
+                ':name': new_name,
+                ':inc': 1,
+                ':current_version': current_version  # fails if version changed
+            }
+        )
+    except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+        # Another process updated first — retry with fresh data
+        raise OptimisticLockException("Item was updated by another process")
+```
+
+---
+
+**Q40. How do you implement TTL (Time To Live) in DynamoDB?**
+
+```python
+from datetime import datetime, timedelta
+import time
+
+# Enable TTL on table (one-time setup)
+# DynamoDB → Table → Additional settings → TTL → Enable → attribute: ttl
+
+# When writing item — set TTL as Unix timestamp
+def create_session(table, user_id, session_token):
+    # Expire session in 24 hours
+    expiry = int(time.time()) + (24 * 60 * 60)
+    
+    table.put_item(Item={
+        'sessionId': session_token,
+        'userId': user_id,
+        'createdAt': datetime.utcnow().isoformat(),
+        'ttl': expiry  # DynamoDB auto-deletes when current time > ttl
+    })
+
+# DynamoDB deletes expired items within 48 hours (not instant)
+# Don't rely on TTL for exact-time deletion — use for cleanup only
+```
+
+---
+
+**Q41. Design a DynamoDB table for an e-commerce order system.**
+
+```
+Access patterns to support:
+1. Get order by orderId
+2. Get all orders for a customer
+3. Get orders by status (pending, shipped, delivered)
+4. Get orders in a date range for a customer
+
+Table: Orders
+PK: orderId
+SK: (none — simple primary key)
+
+GSI 1: CustomerOrders
+  PK: customerId
+  SK: createdAt
+  → supports patterns 2 and 4
+
+GSI 2: StatusIndex  
+  PK: status
+  SK: createdAt
+  → supports pattern 3
+
+Items:
+{
+  "orderId": "ord-123",
+  "customerId": "cust-456",
+  "status": "pending",
+  "createdAt": "2024-03-01T10:00:00",
+  "total": 1500,
+  "items": [...]
+}
+
+Queries:
+Pattern 1: GetItem orderId="ord-123"
+Pattern 2: GSI1 Query customerId="cust-456"
+Pattern 3: GSI2 Query status="pending"
+Pattern 4: GSI1 Query customerId="cust-456" AND createdAt BETWEEN dates
+```
+
+---
+
