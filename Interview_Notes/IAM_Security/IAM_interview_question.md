@@ -4,6 +4,86 @@
 
 ---
 
+## README — How to Use This Document
+
+**Total questions:** 50 (30 theory + 20 practical scenarios + 5 trick questions)
+**Prep time:** 3-4 days recommended
+**Target roles:** DevOps Engineer, Cloud Engineer, Platform Engineer, SRE
+
+---
+
+### Priority 1 — Must Memorise (comes up in every interview)
+
+| Question | Topic | Why it matters |
+|---|---|---|
+| Q8 | Policy evaluation order | Interviewers test this constantly — get this wrong and they lose confidence |
+| Q10 | iam:PassRole privilege escalation | Senior-level question — shows you understand security risks, not just usage |
+| Q31 | Debugging AccessDenied on Lambda | You WILL face this in real work — having a structured approach impresses |
+| Q41 | Leaked access key incident response | Incident response question — tests if you panic or act systematically |
+| Q50 | Region restriction + BoolIfExists vs Bool | Classic trick question — most candidates get the condition operator wrong |
+
+---
+
+### Priority 2 — Your Strongest Answers (backed by real experience)
+
+These questions map directly to things you've actually built — answer these
+with your real project context, not generic textbook answers.
+
+| Question | Topic | Your real experience |
+|---|---|---|
+| Q33 | GitHub Actions OIDC — no stored credentials | Your deploy.yaml for judicialsolutions.in already implements this |
+| Q35 | EC2 instance profile for S3 access | You've set this up hands-on — reference your EC2 + S3 work |
+| Q36 | Cross-account access setup end-to-end | Relevant to judicialsolutions.in multi-service architecture |
+| Q44 | IRSA for EKS pods | You have EKS experience on your resume — this shows depth |
+
+---
+
+### Priority 3 — Scenario Questions to Practice Out Loud
+
+Scenarios 31–45 should be answered verbally, not just read.
+For each one, time yourself — aim to answer in under 2 minutes.
+If you can't answer in 2 minutes without reading, practise again.
+
+---
+
+### How to Answer IAM Questions in Interviews
+
+**For theory questions:** Structure as Definition → How it works → When to use it → Example
+
+**For scenario questions:** Structure as Diagnosis → Root cause → Fix → Prevention
+
+**Power phrases that signal seniority:**
+- *"Explicit deny always wins — even AdministratorAccess can't override it"*
+- *"I'd use iam:simulate-principal-policy to test before applying"*
+- *"Default is implicit deny — you must explicitly allow everything"*
+- *"I'd check CloudTrail to see what changed and when"*
+- *"I'd use OIDC instead of long-term access keys for CI/CD"*
+
+---
+
+### Exam Traps Quick Reference (read before every interview)
+
+```
+1.  Explicit Deny > Allow — always, no exceptions
+2.  Default = implicit deny — you must Allow everything
+3.  S3 same-account: IAM OR bucket policy is enough
+    S3 cross-account: BOTH must allow
+4.  SCPs restrict only — they never grant permissions
+5.  EC2 needs instance profile, not role directly
+6.  Permission boundary limits max — doesn't grant on its own
+7.  Role chaining → max session = 1 hour regardless of role setting
+8.  AKIA = permanent key, ASIA = temporary STS key
+9.  iam:PassRole = privilege escalation risk
+10. Root bypasses IAM policies but NOT SCPs
+11. IAM is eventually consistent — 1-2 second delay after changes
+12. aws:SourceIp breaks through VPC endpoints — use aws:VpcSourceIp
+13. Bool fails for API calls without MFA — use BoolIfExists
+```
+
+---
+
+---
+
 ## SECTION 1 — THEORY QUESTIONS (30 Questions)
 
 ### Users, Groups, Roles
