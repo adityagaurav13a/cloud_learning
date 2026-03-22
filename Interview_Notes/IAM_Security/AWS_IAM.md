@@ -543,3 +543,129 @@ spec:
 ```
 
 ---
+
+## PART 5 — CROSS-ACCOUNT ACCESS
+
+### Two Ways to Do Cross-Account Access
+
+```
+Account A (your app) needs to access Account B (shared resources)
+
+Method 1: AssumeRole (recommended)
+  Account A role → AssumeRole → Account B role → access resources
+  
+  Requires:
+  a) Account A role has permission to call sts:AssumeRole on Account B role
+  b) Account B role trust policy allows Account A
+
+Method 2: Resource-based policy
+  Account B resource (S3, SQS) has policy allowing Account A directly
+  No role assumption needed — simpler but less flexible
+```
+
+### Cross-Account AssumeRole Setup
+
+```
+Account A ID: 111111111111
+Account B ID: 222222222222
+
+Step 1 — In Account B: Create role with trust policy
+```
+
+```json
+// Account B — trust policy on role
+{
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "AWS": "arn:aws:iam::111111111111:role/account-a-role"
+    },
+    "Action": "sts:AssumeRole",
+    "Condition": {
+      "StringEquals": {
+        "sts:ExternalId": "unique-external-id-12345"
+      }
+    }
+  }]
+}
+```
+
+```json
+// Account B — permission policy on role
+{
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["s3:GetObject", "s3:ListBucket"],
+    "Resource": [
+      "arn:aws:s3:::account-b-shared-bucket",
+      "arn:aws:s3:::account-b-shared-bucket/*"
+    ]
+  }]
+}
+```
+
+```json
+// Step 2 — In Account A: role permission to assume Account B role
+{
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "sts:AssumeRole",
+    "Resource": "arn:aws:iam::222222222222:role/account-b-role"
+  }]
+}
+```
+
+```python
+# Step 3 — Application code assumes Account B role
+import boto3
+
+def get_cross_account_client(role_arn, service):
+    sts = boto3.client('sts')
+    
+    assumed = sts.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName='cross-account-session',
+        ExternalId='unique-external-id-12345',
+        DurationSeconds=3600
+    )
+    
+    creds = assumed['Credentials']
+    
+    return boto3.client(
+        service,
+        aws_access_key_id=creds['AccessKeyId'],
+        aws_secret_access_key=creds['SecretAccessKey'],
+        aws_session_token=creds['SessionToken']
+    )
+
+# Usage
+s3 = get_cross_account_client(
+    'arn:aws:iam::222222222222:role/account-b-role',
+    's3'
+)
+s3.list_objects_v2(Bucket='account-b-shared-bucket')
+```
+
+### What is External ID and why use it?
+
+```
+Problem — confused deputy attack:
+  Attacker tricks YOUR application into assuming a role
+  attacker doesn't have permission to assume directly.
+  
+  Example:
+  You build a multi-tenant SaaS
+  Customer A's role ARN: arn:aws:iam::CustomerA:role/my-role
+  Attacker gives you Customer B's role ARN
+  Your app assumes it → attacker gains access to Customer B's account
+  
+Solution — External ID:
+  Each customer gets a unique secret External ID
+  Trust policy requires correct ExternalId
+  Attacker can't forge it — they don't know Customer B's External ID
+  
+Best practice:
+  Always use ExternalId for cross-account roles in multi-tenant systems
+```
+
+---
