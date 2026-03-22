@@ -848,3 +848,423 @@ Condition in dev's policy:
 ```
 
 ---
+
+## PART 8 — STS + TEMPORARY CREDENTIALS
+
+### What is STS?
+
+AWS Security Token Service — issues temporary credentials for:
+- AssumeRole (users and services assuming roles)
+- AssumeRoleWithWebIdentity (OIDC — Google, Facebook, GitHub)
+- AssumeRoleWithSAML (enterprise SSO)
+- GetFederationToken (legacy)
+- GetSessionToken (add MFA to long-term credentials)
+
+### Temporary Credentials vs Long-term
+
+```
+Long-term (IAM user access keys):
+  AccessKeyId starts with: AKIA...
+  SecretAccessKey: never changes (until rotated)
+  No expiration
+  Risk: if leaked, attacker has permanent access
+
+Temporary (STS):
+  AccessKeyId starts with: ASIA...
+  SecretAccessKey: different every time
+  SessionToken: required
+  Expiration: 15 minutes to 12 hours
+  Risk: if leaked, expires automatically
+```
+
+### STS Hands-on
+
+```bash
+# Check your current identity
+aws sts get-caller-identity
+# Output:
+{
+    "UserId": "AIDAXXXXXXXXXXXXXXXX",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:user/aditya"
+}
+
+# Get session token (adds MFA verification to existing credentials)
+aws sts get-session-token \
+  --duration-seconds 3600 \
+  --serial-number arn:aws:iam::ACCOUNT:mfa/aditya \
+  --token-code 123456  # MFA code from your device
+
+# Assume a role
+aws sts assume-role \
+  --role-arn arn:aws:iam::ACCOUNT:role/DevOpsRole \
+  --role-session-name my-session \
+  --duration-seconds 3600
+
+# Decode if you get AccessDenied — tells you what was denied
+aws sts decode-authorization-message \
+  --encoded-message "long-encoded-string-from-error"
+```
+
+### OIDC — GitHub Actions to AWS Without Access Keys
+
+```
+Traditional (insecure):
+  Store AWS_ACCESS_KEY_ID in GitHub secrets
+  Long-term credentials — never expire
+  If GitHub is compromised → permanent AWS access
+
+OIDC (secure — no stored credentials):
+  GitHub → OIDC token (short-lived JWT)
+  → STS → temporary credentials (1hr)
+  → CI/CD runs → credentials expire
+  No stored credentials anywhere
+```
+
+```bash
+# Step 1: Create OIDC provider in AWS
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com \
+  --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1"
+```
+
+```json
+// Step 2: Create role with OIDC trust policy
+{
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Federated": "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"
+    },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+      },
+      "StringLike": {
+        "token.actions.githubusercontent.com:sub": 
+          "repo:adityagaurav13a/*:*"
+      }
+    }
+  }]
+}
+```
+
+```yaml
+# Step 3: GitHub Actions workflow — no secrets needed
+jobs:
+  deploy:
+    permissions:
+      id-token: write   # required for OIDC
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::ACCOUNT:role/github-actions-role
+          aws-region: ap-south-1
+          # No access key or secret key needed!
+
+      - name: Deploy
+        run: aws s3 sync . s3://my-bucket
+```
+
+---
+
+## HANDS-ON EXERCISES
+
+### Exercise 1: Create a least-privilege Lambda role
+
+```bash
+# Step 1: Create policy document
+cat > lambda-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:ap-south-1:*:*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:Query"
+      ],
+      "Resource": "arn:aws:dynamodb:ap-south-1:*:table/users"
+    }
+  ]
+}
+EOF
+
+# Step 2: Create the policy
+aws iam create-policy \
+  --policy-name LambdaUserAPIPolicy \
+  --policy-document file://lambda-policy.json
+
+# Step 3: Create trust policy
+cat > trust-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {"Service": "lambda.amazonaws.com"},
+    "Action": "sts:AssumeRole"
+  }]
+}
+EOF
+
+# Step 4: Create role
+aws iam create-role \
+  --role-name LambdaUserAPIRole \
+  --assume-role-policy-document file://trust-policy.json
+
+# Step 5: Attach policy to role
+aws iam attach-role-policy \
+  --role-name LambdaUserAPIRole \
+  --policy-arn arn:aws:iam::ACCOUNT:policy/LambdaUserAPIPolicy
+
+# Step 6: Verify
+aws iam get-role --role-name LambdaUserAPIRole
+aws iam list-attached-role-policies --role-name LambdaUserAPIRole
+```
+
+---
+
+### Exercise 2: Test AssumeRole
+
+```bash
+# Step 1: Create a role you can assume
+cat > test-trust-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "AWS": "arn:aws:iam::YOUR_ACCOUNT:user/YOUR_USERNAME"
+    },
+    "Action": "sts:AssumeRole"
+  }]
+}
+EOF
+
+aws iam create-role \
+  --role-name TestAssumeRole \
+  --assume-role-policy-document file://test-trust-policy.json
+
+# Attach S3 read-only
+aws iam attach-role-policy \
+  --role-name TestAssumeRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# Step 2: Assume the role
+CREDS=$(aws sts assume-role \
+  --role-arn arn:aws:iam::YOUR_ACCOUNT:role/TestAssumeRole \
+  --role-session-name test-session)
+
+# Step 3: Export credentials
+export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')
+
+# Step 4: Verify you're now the role
+aws sts get-caller-identity
+# Should show: TestAssumeRole
+
+# Step 5: Test permissions
+aws s3 ls  # should work (S3 read)
+aws ec2 describe-instances  # should fail (no EC2 permission)
+
+# Step 6: Go back to original identity
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+aws sts get-caller-identity  # back to original user
+```
+
+---
+
+### Exercise 3: Use IAM Access Analyzer
+
+```bash
+# Find over-permissive resources (publicly accessible)
+aws accessanalyzer list-analyzers
+
+# Create analyzer if none exists
+aws accessanalyzer create-analyzer \
+  --analyzer-name judicial-analyzer \
+  --type ACCOUNT
+
+# List findings (publicly accessible resources)
+aws accessanalyzer list-findings \
+  --analyzer-arn arn:aws:accessanalyzer:ap-south-1:ACCOUNT:analyzer/judicial-analyzer
+
+# Generate least privilege policy based on CloudTrail activity
+aws accessanalyzer generate-policy \
+  --trail-arn arn:aws:cloudtrail:ap-south-1:ACCOUNT:trail/management-trail
+```
+
+---
+
+## INTERVIEW QUESTIONS RAPID FIRE
+
+**Q: What's the difference between an IAM role and an instance profile?**
+- Role = IAM identity with permissions
+- Instance profile = container that holds a role for EC2
+- EC2 can't directly use a role — needs instance profile wrapper
+- When you create a role for EC2 in console, AWS auto-creates instance profile with same name
+
+**Q: Can an IAM policy allow access to a resource in another AWS account?**
+- Yes — two ways:
+  1. Resource-based policy (S3, SQS, KMS) — grant access to another account's principal
+  2. Assume role — identity in Account A assumes role in Account B
+
+**Q: What happens if you have both an allow in identity policy and a deny in SCP?**
+- Deny wins — SCP explicit deny overrides everything
+- Even an explicit Allow in identity policy doesn't help
+
+**Q: How do you audit who has access to an S3 bucket?**
+```bash
+# Check bucket policy
+aws s3api get-bucket-policy --bucket my-bucket
+
+# Check bucket ACL
+aws s3api get-bucket-acl --bucket my-bucket
+
+# Use IAM Access Analyzer
+aws accessanalyzer list-findings  # shows external access
+
+# Check CloudTrail for access history
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=ResourceName,AttributeValue=my-bucket
+```
+
+**Q: What is the confused deputy problem in AWS IAM?**
+- A trusted service is tricked into performing actions on behalf of an attacker
+- Solution: use External ID in cross-account role trust policies
+- Also use aws:SourceAccount and aws:SourceArn conditions when granting permissions to AWS services
+
+**Q: How do you prevent privilege escalation in IAM?**
+```json
+// User should not be able to give themselves more permissions
+// Deny creating/attaching policies that exceed their own permissions
+{
+  "Effect": "Deny",
+  "Action": [
+    "iam:CreatePolicy",
+    "iam:AttachRolePolicy",
+    "iam:PutRolePolicy",
+    "iam:PassRole"
+  ],
+  "Resource": "*",
+  "Condition": {
+    "ArnNotEquals": {
+      "iam:PolicyARN": [
+        "arn:aws:iam::ACCOUNT:policy/AllowedPolicy1"
+      ]
+    }
+  }
+}
+```
+
+**Q: What is iam:PassRole and why is it important?**
+```
+iam:PassRole = permission to assign a role to an AWS service
+
+Example:
+  You create a Lambda function and assign it an IAM role
+  → You need iam:PassRole permission on that role
+  → Without it: "User is not authorized to pass a role"
+
+Why it matters:
+  If user has iam:PassRole on admin role,
+  they can pass admin role to a Lambda they create,
+  then invoke Lambda to do admin actions
+  = privilege escalation
+
+Best practice:
+  Restrict iam:PassRole to specific roles only:
+```
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:PassRole",
+  "Resource": "arn:aws:iam::ACCOUNT:role/LambdaExecutionRole*",
+  "Condition": {
+    "StringEquals": {"iam:PassedToService": "lambda.amazonaws.com"}
+  }
+}
+```
+
+**Q: How do you rotate IAM access keys without downtime?**
+```
+Step 1: Create new access key (max 2 keys per user)
+  aws iam create-access-key --user-name my-user
+
+Step 2: Update application to use new key
+
+Step 3: Verify application works with new key
+
+Step 4: Deactivate old key (don't delete yet)
+  aws iam update-access-key \
+    --access-key-id OLD_KEY_ID \
+    --status Inactive
+
+Step 5: Monitor for any usage of old key (CloudTrail)
+
+Step 6: Delete old key after confidence period
+  aws iam delete-access-key --access-key-id OLD_KEY_ID
+```
+
+---
+
+## QUICK REFERENCE
+
+### IAM Policy variables:
+```json
+// Use dynamic values in policies
+{
+  "Resource": "arn:aws:s3:::my-bucket/${aws:username}/*"
+  // Each user can only access their own folder
+}
+
+// Common variables:
+aws:username         // IAM username
+aws:userid           // user/role ID
+aws:accountid        // AWS account ID
+aws:PrincipalTag/key // tags on the principal
+aws:RequestedRegion  // region of the request
+aws:CurrentTime      // current time
+aws:SecureTransport  // true if HTTPS
+aws:MultiFactorAuthPresent // true if MFA used
+```
+
+### ARN format:
+```
+arn:partition:service:region:account-id:resource
+
+Examples:
+arn:aws:iam::123456789012:user/aditya
+arn:aws:iam::123456789012:role/LambdaRole
+arn:aws:iam::123456789012:policy/MyPolicy
+arn:aws:s3:::my-bucket           (S3 has no region/account)
+arn:aws:s3:::my-bucket/*         (objects in bucket)
+arn:aws:lambda:ap-south-1:123456789012:function:my-func
+arn:aws:dynamodb:ap-south-1:123456789012:table/users
+```
+
+### Access key prefixes:
+```
+AKIA... = long-term access key (IAM user)
+ASIA... = temporary access key (STS/AssumeRole)
+AROA... = role ID
+AIDA... = IAM user ID
+AGPA... = group ID
+```
