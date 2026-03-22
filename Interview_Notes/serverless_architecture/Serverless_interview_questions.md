@@ -1045,3 +1045,366 @@ Pattern 4: GSI1 Query customerId="cust-456" AND createdAt BETWEEN dates
 
 ---
 
+## SECTION 4 — CI/CD FOR SERVERLESS (20 Questions)
+
+### Core Theory
+
+**Q42. What is the difference between SAM and Serverless Framework?**
+
+| | AWS SAM | Serverless Framework |
+|---|---|---|
+| Made by | AWS | Third party (Serverless Inc.) |
+| Cloud support | AWS only | AWS, Azure, GCP, more |
+| Language | CloudFormation extension | Own DSL |
+| Local testing | sam local | serverless invoke local |
+| Cost | Free | Free (paid tiers for teams) |
+| Community | Smaller | Larger |
+| Best for | AWS-only teams | Multi-cloud or existing Serverless users |
+
+---
+
+**Q43. How do you manage different environments (dev/staging/prod) in serverless CI/CD?**
+
+```yaml
+# SAM — use parameters
+Parameters:
+  Env:
+    Type: String
+    AllowedValues: [dev, staging, prod]
+
+Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "users-${Env}"  # users-dev, users-staging, users-prod
+      
+# Deploy:
+sam deploy --parameter-overrides Env=staging
+```
+
+```yaml
+# GitHub Actions — separate jobs per environment
+jobs:
+  deploy-dev:
+    environment: dev
+    steps:
+      - run: sam deploy --parameter-overrides Env=dev
+  
+  deploy-staging:
+    needs: deploy-dev
+    environment: staging
+    steps:
+      - run: sam deploy --parameter-overrides Env=staging
+  
+  deploy-prod:
+    needs: deploy-staging
+    environment: production  # requires manual approval
+    steps:
+      - run: sam deploy --parameter-overrides Env=prod
+```
+
+---
+
+**Q44. How do you implement canary deployments for Lambda using CI/CD?**
+
+```yaml
+# SAM — built-in canary deployment via CodeDeploy
+Resources:
+  MyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      ...
+      AutoPublishAlias: live  # auto-publish new version on deploy
+      DeploymentPreference:
+        Type: Canary10Percent5Minutes  # 10% traffic to new, shift 100% after 5min
+        Alarms:
+          - !Ref ErrorRateAlarm  # rollback if alarm fires
+        Hooks:
+          PreTraffic: !Ref PreTrafficTest  # run tests before shifting traffic
+```
+
+Types:
+- `Canary10Percent5Minutes` — 10% for 5 min, then 100%
+- `Linear10PercentEvery1Minute` — add 10% every minute
+- `AllAtOnce` — immediate (no canary)
+
+---
+
+**Q45. How do you test Lambda functions in CI/CD before deploying to production?**
+
+```
+Testing pyramid for serverless:
+
+Unit tests (fast, no AWS):
+  Mock boto3 calls
+  Test business logic only
+  Run: pytest tests/unit/
+
+Integration tests (real AWS, staging):
+  Deploy to staging first
+  Call real API endpoints
+  Verify DynamoDB records created
+  Run: pytest tests/integration/ --env=staging
+
+End-to-end tests (real AWS, production-like):
+  Full user journey
+  Smoke tests after deployment
+  Run: pytest tests/e2e/
+```
+
+```python
+# Unit test with mocked DynamoDB
+import pytest
+from unittest.mock import patch, MagicMock
+import json
+
+@patch('create_user.boto3')
+def test_create_user_success(mock_boto3):
+    # Setup mock
+    mock_table = MagicMock()
+    mock_boto3.resource.return_value.Table.return_value = mock_table
+    mock_table.put_item.return_value = {}
+    
+    # Call handler
+    from create_user import lambda_handler
+    event = {
+        'body': json.dumps({'name': 'Aditya', 'email': 'a@b.com'})
+    }
+    result = lambda_handler(event, {})
+    
+    # Assert
+    assert result['statusCode'] == 201
+    mock_table.put_item.assert_called_once()
+```
+
+---
+
+**Q46. What is SAM Accelerate and how does it speed up deployments?**
+
+```bash
+# Normal sam deploy: 2-3 minutes
+# SAM Accelerate: 10-30 seconds for code-only changes
+
+# Start sync session
+sam sync --stack-name judicial-prod --watch
+
+# SAM monitors for changes:
+# Code change only → direct Lambda update (bypasses CloudFormation)
+# Config change → full CloudFormation update
+# New resource → full CloudFormation update
+
+# Only use in dev/staging — not for production deployments
+# Production should always go through CloudFormation for auditability
+```
+
+---
+
+### Practical Questions
+
+**Q47. Your production Lambda deployment failed halfway. Some functions are on new version, some on old. How do you handle this?**
+
+```
+Scenario: 5 Lambda functions, deploy failed after updating 3
+Result: 3 new + 2 old = inconsistent state
+
+Prevention (SAM/CloudFormation):
+  All-or-nothing deployment — CloudFormation rollback on failure
+  If ANY resource fails → all resources rolled back to previous state
+  This is the main benefit of IaC over manual deployments
+
+If it happens anyway:
+  Option 1: Re-run the deployment — CloudFormation detects what changed
+  Option 2: Manual rollback — update 3 new functions back to previous version
+  aws lambda update-function-code \
+    --function-name func-1 \
+    --s3-bucket artifact-bucket \
+    --s3-key previous-version.zip
+
+Monitoring: CloudWatch dashboards showing which version each function is on
+  aws lambda list-functions --query 'Functions[*].[FunctionName,Version]'
+```
+
+---
+
+**Q48. How do you store and manage Terraform state for a serverless project in a team?**
+
+```hcl
+# backend.tf — shared remote state
+terraform {
+  backend "s3" {
+    bucket         = "judicial-terraform-state"
+    key            = "judicial-solutions/prod/terraform.tfstate"
+    region         = "ap-south-1"
+    encrypt        = true
+    dynamodb_table = "terraform-state-lock"
+  }
+}
+
+# Create the S3 bucket and DynamoDB table first (bootstrap):
+aws s3 mb s3://judicial-terraform-state --region ap-south-1
+aws s3api put-bucket-versioning \
+  --bucket judicial-terraform-state \
+  --versioning-configuration Status=Enabled
+
+aws dynamodb create-table \
+  --table-name terraform-state-lock \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST
+```
+
+---
+
+**Q49. How do you implement automatic rollback in GitHub Actions if deployment fails?**
+
+```yaml
+jobs:
+  deploy:
+    steps:
+      - name: Get current Lambda version (before deploy)
+        id: current_version
+        run: |
+          VERSION=$(aws lambda get-alias \
+            --function-name judicial-api \
+            --name prod \
+            --query 'FunctionVersion' \
+            --output text)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Deploy
+        id: deploy
+        run: sam deploy --stack-name judicial-prod
+        continue-on-error: true
+
+      - name: Smoke test
+        id: smoke_test
+        if: steps.deploy.outcome == 'success'
+        run: pytest tests/smoke/ --env=prod
+        continue-on-error: true
+
+      - name: Rollback if smoke test failed
+        if: steps.smoke_test.outcome == 'failure'
+        run: |
+          echo "Smoke test failed — rolling back to version ${{ steps.current_version.outputs.version }}"
+          aws lambda update-alias \
+            --function-name judicial-api \
+            --name prod \
+            --function-version ${{ steps.current_version.outputs.version }}
+
+      - name: Fail job if rollback was triggered
+        if: steps.smoke_test.outcome == 'failure'
+        run: exit 1
+```
+
+---
+
+**Q50. Complete scenario: A user reports that creating an account on your serverless app fails randomly. Walk through your debugging process.**
+
+```
+Step 1: CloudWatch Logs
+  Lambda → /aws/lambda/create-user → Filter: ERROR
+  Find the error message and stack trace
+  Note the requestId
+
+Step 2: X-Ray trace
+  X-Ray → Traces → filter by URL/error
+  See which service segment is failing:
+  API Gateway → Lambda → DynamoDB → which one?
+
+Step 3: Check metrics
+  Lambda: Error count, Duration, Throttles
+  DynamoDB: ConsumedWriteCapacity, ThrottledRequests
+  API Gateway: 4xx, 5xx rates
+
+Step 4: Reproduce locally
+  sam local invoke CreateUserFunction --event events/create_user.json
+
+Step 5: Common causes for "random" failures:
+  - DynamoDB throttling (on-demand lag)
+  - Lambda cold start timeout
+  - Cognito rate limits
+  - Duplicate email causing ConditionalCheckFailed
+  - Race condition in userId generation
+
+Step 6: Fix and verify
+  Deploy fix to staging
+  Run integration tests
+  Monitor for 30 minutes
+  Deploy to prod
+  Monitor again
+```
+
+---
+
+## TRICK QUESTIONS (Often asked to catch you off guard)
+
+**Q51. Can Lambda access the internet if it's NOT in a VPC?**
+- **Yes** — Lambda outside VPC has internet access by default
+- Lambda outside VPC runs in AWS-managed network with internet access
+- Lambda INSIDE VPC loses internet access (needs NAT Gateway)
+- Common misconception: people think VPC gives internet — it actually takes it away unless you configure NAT
+
+---
+
+**Q52. DynamoDB is serverless — does it ever go cold?**
+- **No** — DynamoDB has no cold start concept
+- Always available, always fast (single-digit ms)
+- Only Lambda has cold starts among serverless services
+
+---
+
+**Q53. Can you run Lambda for 30 minutes for a long-running task?**
+- **No** — max 15 minutes
+- For longer tasks: AWS Batch, ECS Fargate, Step Functions (orchestrate multiple Lambdas), EC2
+
+---
+
+**Q54. Is API Gateway free tier permanent?**
+- REST API: 1 million calls/month free for 12 months only
+- HTTP API: 1 million calls/month free for 12 months only
+- After 12 months: you pay for every call
+- WebSocket: no free tier
+
+---
+
+**Q55. Can two different Lambda functions share the same execution environment?**
+- **No** — each execution environment is dedicated to one function
+- Different functions never share environments
+- Same function can reuse its own environment (warm start)
+- This is why global variables in one function don't affect another
+
+---
+
+## QUICK REFERENCE
+
+### Lambda error codes:
+| Code | Meaning |
+|---|---|
+| 200 | Success |
+| 429 | Throttled (concurrency limit) |
+| 500 | Function error |
+| 502 | Bad gateway (wrong response format) |
+| 503 | Service unavailable |
+| 504 | Integration timeout (>29s) |
+
+### DynamoDB operation costs:
+| Operation | Cost |
+|---|---|
+| GetItem (eventually consistent, 4KB) | 0.5 RCU |
+| GetItem (strongly consistent, 4KB) | 1 RCU |
+| PutItem (1KB) | 1 WCU |
+| Query | RCUs for all returned items |
+| Scan | RCUs for ALL items in table |
+| Transaction read | 2x normal RCU |
+| Transaction write | 2x normal WCU |
+
+### GitHub Actions key concepts:
+| Concept | Purpose |
+|---|---|
+| `needs` | Job dependency — run after another job |
+| `environment` | Named environment with protection rules |
+| `secrets` | Encrypted values — never shown in logs |
+| `outputs` | Pass values between steps/jobs |
+| `continue-on-error` | Don't fail job if step fails |
+| `if` | Conditional step execution |
+| `matrix` | Run job with multiple configs |
