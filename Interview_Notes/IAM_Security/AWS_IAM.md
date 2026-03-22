@@ -669,3 +669,182 @@ Best practice:
 ```
 
 ---
+
+## PART 6 — PERMISSION BOUNDARIES
+
+### What is a Permission Boundary?
+
+```
+Permission boundary = maximum permissions a user/role can have
+
+Even if role has AdministratorAccess policy,
+if permission boundary only allows S3 access,
+the role can ONLY do S3 operations.
+
+Effective permissions = 
+  intersection of (identity policy) AND (permission boundary)
+```
+
+```
+Identity policy allows: S3:*, EC2:*, DynamoDB:*
+Permission boundary allows: S3:*, Lambda:*
+Effective permissions: S3:* only (intersection)
+```
+
+### Why Use Permission Boundaries?
+
+```
+Use case: delegated administration
+  You want junior devs to create IAM roles for their Lambdas
+  But you don't want them to create roles with more permissions than they have
+  
+Solution:
+  1. Attach permission boundary to junior dev's user
+  2. Require them to attach same boundary to any role they create
+  3. Even if they try to create an admin role — boundary limits it
+  
+Condition in dev's policy:
+```
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:CreateRole",
+  "Resource": "*",
+  "Condition": {
+    "StringEquals": {
+      "iam:PermissionsBoundary": 
+        "arn:aws:iam::ACCOUNT:policy/DeveloperBoundary"
+    }
+  }
+}
+```
+
+---
+
+## PART 7 — IAM BEST PRACTICES + LEAST PRIVILEGE
+
+### The 10 IAM Best Practices
+
+```
+1. Lock away root account credentials
+   - Never use root for daily operations
+   - Enable MFA on root
+   - Create admin IAM user instead
+
+2. Create individual IAM users
+   - One user per person — never share credentials
+   - Audit who did what using CloudTrail
+
+3. Use groups to assign permissions
+   - Assign policies to groups, not individual users
+   - User joins/leaves group = instant permission change
+
+4. Grant least privilege
+   - Start with minimum permissions
+   - Add more as needed
+   - Never use * in production policies
+
+5. Enable MFA for privileged users
+   - Enforce MFA for console access
+   - Require MFA for sensitive operations via condition
+
+6. Use roles for applications
+   - EC2, Lambda, ECS always use roles
+   - Never embed access keys in code or config files
+
+7. Rotate credentials regularly
+   - Rotate access keys every 90 days
+   - Use AWS Secrets Manager for automatic rotation
+
+8. Remove unnecessary credentials
+   - Delete unused users and access keys
+   - Use IAM Access Analyzer to find unused permissions
+
+9. Use policy conditions
+   - Restrict by IP, region, MFA, time
+   - Make policies context-aware
+
+10. Monitor activity with CloudTrail
+    - All IAM changes logged
+    - Set alarms for suspicious activity
+```
+
+### Least Privilege in Practice
+
+```json
+// Stage 1 — Discovery (never in production)
+{"Effect": "Allow", "Action": "*", "Resource": "*"}
+
+// Stage 2 — Narrow by service
+{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}
+
+// Stage 3 — Narrow by action
+{
+  "Effect": "Allow",
+  "Action": ["s3:GetObject", "s3:PutObject"],
+  "Resource": "*"
+}
+
+// Stage 4 — Narrow by resource (production ready)
+{
+  "Effect": "Allow",
+  "Action": ["s3:GetObject", "s3:PutObject"],
+  "Resource": "arn:aws:s3:::judicial-solutions/*"
+}
+
+// Stage 5 — Add conditions (most secure)
+{
+  "Effect": "Allow",
+  "Action": ["s3:GetObject", "s3:PutObject"],
+  "Resource": "arn:aws:s3:::judicial-solutions/*",
+  "Condition": {
+    "StringEquals": {
+      "aws:RequestedRegion": "ap-south-1"
+    }
+  }
+}
+```
+
+### Common Security Conditions
+
+```json
+// Require MFA for sensitive operations
+{
+  "Effect": "Deny",
+  "Action": ["iam:*", "cloudtrail:DeleteTrail"],
+  "Resource": "*",
+  "Condition": {
+    "BoolIfExists": {"aws:MultiFactorAuthPresent": "false"}
+  }
+}
+
+// Restrict to specific IP range
+{
+  "Condition": {
+    "NotIpAddress": {"aws:SourceIp": ["203.0.113.0/24", "198.51.100.0/24"]},
+    "Bool": {"aws:ViaAWSService": "false"}
+  }
+}
+
+// Restrict to specific region
+{
+  "Condition": {
+    "StringNotEquals": {"aws:RequestedRegion": "ap-south-1"}
+  }
+}
+
+// Require HTTPS only
+{
+  "Condition": {"Bool": {"aws:SecureTransport": "false"}}
+}
+
+// Tag-based access control
+{
+  "Condition": {
+    "StringEquals": {"aws:ResourceTag/Environment": "prod"}
+  }
+}
+```
+
+---
