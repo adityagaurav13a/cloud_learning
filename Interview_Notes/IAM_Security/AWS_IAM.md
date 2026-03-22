@@ -344,3 +344,202 @@ Both are required:
 ```
 
 ---
+
+# PART 4 — IAM FOR AWS SERVICES
+
+### Lambda Execution Role
+
+```
+Lambda needs TWO things:
+1. Trust policy — allows Lambda to assume the role
+2. Permission policy — what the Lambda can do
+
+Minimum required policy (CloudWatch Logs):
+```
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
+    }
+  ]
+}
+```
+
+```json
+// Lambda role for DynamoDB CRUD
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:ap-south-1:ACCOUNT:table/users",
+        "arn:aws:dynamodb:ap-south-1:ACCOUNT:table/users/index/*"
+      ]
+    }
+  ]
+}
+```
+
+**Least privilege for Lambda:**
+```json
+// BAD — too broad
+{"Action": "dynamodb:*", "Resource": "*"}
+
+// GOOD — specific actions on specific table
+{
+  "Action": ["dynamodb:GetItem", "dynamodb:PutItem"],
+  "Resource": "arn:aws:dynamodb:ap-south-1:123456:table/users"
+}
+```
+
+---
+
+### EC2 Instance Profile
+
+```
+EC2 can't "log in" to assume a role like a human does.
+Instance Profile = container that holds an IAM role for EC2.
+
+Flow:
+  EC2 instance → requests credentials from instance metadata service
+  URL: http://169.254.169.254/latest/meta-data/iam/security-credentials/role-name
+  → Gets temporary credentials automatically
+  → AWS SDK uses these automatically (no config needed)
+```
+
+```bash
+# Check what role an EC2 has
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
+# Returns: role-name
+
+# Get the actual credentials
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role
+# Returns: AccessKeyId, SecretAccessKey, Token, Expiration
+```
+
+```bash
+# Create instance profile and attach role
+aws iam create-instance-profile \
+  --instance-profile-name my-ec2-profile
+
+aws iam add-role-to-instance-profile \
+  --instance-profile-name my-ec2-profile \
+  --role-name my-ec2-role
+
+# Attach to EC2
+aws ec2 associate-iam-instance-profile \
+  --instance-id i-1234567890 \
+  --iam-instance-profile Name=my-ec2-profile
+```
+
+---
+
+### ECS Task Role vs ECS Execution Role
+
+```
+Two separate roles for ECS tasks:
+
+1. Task Execution Role:
+   Used by ECS AGENT (not your application)
+   Needed for:
+   - Pull Docker image from ECR
+   - Write logs to CloudWatch
+   - Get secrets from Secrets Manager / SSM
+
+   Minimum permissions:
+   - ecr:GetAuthorizationToken
+   - ecr:BatchGetImage
+   - logs:CreateLogStream
+   - logs:PutLogEvents
+
+2. Task Role:
+   Used by YOUR APPLICATION CODE inside the container
+   What your app needs:
+   - DynamoDB access
+   - S3 access
+   - SQS access
+   - etc.
+
+Think of it this way:
+  Execution role = permissions to START the container
+  Task role = permissions for code RUNNING IN the container
+```
+
+```json
+// ECS Task Definition
+{
+  "family": "judicial-api",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/judicial-task-role",
+  "containerDefinitions": [...]
+}
+```
+
+---
+
+### IRSA — IAM Roles for Service Accounts (Kubernetes)
+
+```
+Problem: EKS pods running on EC2 inherit the node's IAM role
+         All pods on a node have SAME permissions = security risk
+
+Solution: IRSA — each Kubernetes service account gets its own IAM role
+
+Flow:
+  Pod → annotated with IAM role ARN
+  → EKS OIDC provider verifies pod identity
+  → STS issues temporary credentials
+  → Pod code uses role's permissions (not node's)
+```
+
+```bash
+# Create OIDC provider for EKS cluster
+eksctl utils associate-iam-oidc-provider \
+  --cluster judicial-cluster \
+  --approve
+
+# Create IAM role with trust policy for specific service account
+eksctl create iamserviceaccount \
+  --cluster judicial-cluster \
+  --namespace default \
+  --name judicial-api-sa \
+  --attach-policy-arn arn:aws:iam::ACCOUNT:policy/JudicialAPIPolicy \
+  --approve
+```
+
+```yaml
+# Kubernetes pod uses the service account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: judicial-api-sa
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/judicial-role
+
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      serviceAccountName: judicial-api-sa  # pod uses this SA
+```
+
+---
