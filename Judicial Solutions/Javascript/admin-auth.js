@@ -147,7 +147,8 @@ async function startCognitoLogin() {
     redirect_uri:          redirectUri,
     code_challenge_method: "S256",
     code_challenge:        challenge,
-    state,                
+    state,
+    prompt: "login"
   });
 
   const authUrl = `https://${userPoolDomain}/oauth2/authorize?${params.toString()}`;
