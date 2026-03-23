@@ -1,17 +1,24 @@
+// ============================================================
+// auth.js — Cognito PKCE Auth (Security Hardened)
+// ============================================================
+
 const COGNITO_CONFIG = {
   region: "ap-south-1",
-  // ⚠️ NO "https://" here
   userPoolDomain: "ap-south-1ogiug3ddn.auth.ap-south-1.amazoncognito.com",
   clientId: "4eprukneus6l3dhng3s1s1jffp",
-  // MUST match callback URLs in Cognito exactly
-   // redirectUri: "http://localhost:5500/admin-dashboard.html",
-  //   logoutRedirectUri: "http://localhost:5500/admin-login.html",
   redirectUri: "https://d1f1xea7s22zua.cloudfront.net/admin-dashboard.html",
   logoutRedirectUri: "https://d1f1xea7s22zua.cloudfront.net/admin-login.html",
-
 };
 
-// ========= PKCE HELPERS =========
+let _memoryTokens = null; // { idToken, accessToken, refreshToken, expiresAt }
+
+const REFRESH_TOKEN_KEY = "js_admin_refresh_token";
+const PKCE_VERIFIER_KEY = "js_admin_pkce_verifier";
+const PKCE_STATE_KEY    = "js_admin_pkce_state";     // [FIX 2]
+
+// ============================================================
+// PKCE HELPERS (unchanged from original)
+// ============================================================
 
 function base64UrlEncode(buf) {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))
@@ -32,43 +39,80 @@ async function generateCodeChallenge(verifier) {
   return base64UrlEncode(digest);
 }
 
-// ========= TOKEN STORAGE =========
-
-const TOKEN_KEY = "js_admin_tokens";
-const PKCE_VERIFIER_KEY = "js_admin_pkce_verifier";
+// ============================================================
+// TOKEN STORAGE — memory + sessionStorage for refresh token
+// ============================================================
 
 function storeTokens(tokens) {
   const now = Date.now();
   const ttlMs = (parseInt(tokens.expires_in || "3600", 10) - 60) * 1000;
   const expiresAt = now + ttlMs;
 
-  const payload = {
-    idToken: tokens.id_token,
-    accessToken: tokens.access_token,
+  _memoryTokens = {
+    idToken:      tokens.id_token,
+    accessToken:  tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresAt,
   };
-  localStorage.setItem(TOKEN_KEY, JSON.stringify(payload));
-  return payload;
+
+  if (tokens.refresh_token) {
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  }
+
+  return _memoryTokens;
 }
 
-function getStoredTokens() {
-  const raw = localStorage.getItem(TOKEN_KEY);
-  if (!raw) return null;
+function getMemoryTokens() {
+  if (!_memoryTokens) return null;
+  if (Date.now() > _memoryTokens.expiresAt) {
+    _memoryTokens = null;
+    return null;
+  }
+  return _memoryTokens;
+}
+
+
+async function silentRefresh() {
+  const refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) return null;
+
+  const { userPoolDomain, clientId } = COGNITO_CONFIG;
+  const tokenUrl = `https://${userPoolDomain}/oauth2/token`;
+
+  const body = new URLSearchParams({
+    grant_type:    "refresh_token",
+    client_id:     clientId,
+    refresh_token: refreshToken,
+  });
+
   try {
-    const t = JSON.parse(raw);
-    if (!t.expiresAt || Date.now() > t.expiresAt) {
-      localStorage.removeItem(TOKEN_KEY);
+    const res = await fetch(tokenUrl, {
+      method:  "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body:    body.toString(),
+    });
+
+    if (!res.ok) {
+      console.warn("Silent refresh failed — session expired, redirecting to login");
+      sessionStorage.removeItem(REFRESH_TOKEN_KEY);
       return null;
     }
-    return t;
-  } catch {
-    localStorage.removeItem(TOKEN_KEY);
+
+    const data = await res.json();
+    if (!data.refresh_token) {
+      data.refresh_token = refreshToken;
+    }
+
+    return storeTokens(data);
+  } catch (err) {
+    console.error("Silent refresh error:", err);
     return null;
   }
 }
 
-// ========= URL HELPERS =========
+// ============================================================
+// URL HELPERS (unchanged from original)
+// ============================================================
 
 function getQueryParam(name) {
   const url = new URL(window.location.href);
@@ -82,22 +126,28 @@ function clearCodeFromUrl() {
   window.history.replaceState({}, "", url.toString());
 }
 
-// ========= LOGIN / LOGOUT FLOWS =========
+// ============================================================
+// LOGIN FLOW
+// ============================================================
 
 async function startCognitoLogin() {
   const { userPoolDomain, clientId, redirectUri } = COGNITO_CONFIG;
 
-  const verifier = generateCodeVerifier();
-  const challenge = await generateCodeChallenge(verifier);
+  const verifier   = generateCodeVerifier();
+  const challenge  = await generateCodeChallenge(verifier);
   sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
 
+  const state = base64UrlEncode(crypto.getRandomValues(new Uint8Array(16)));
+  sessionStorage.setItem(PKCE_STATE_KEY, state);
+
   const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: "code",
-    scope: "openid email",
-    redirect_uri: redirectUri,
+    client_id:             clientId,
+    response_type:         "code",
+    scope:                 "openid email",
+    redirect_uri:          redirectUri,
     code_challenge_method: "S256",
-    code_challenge: challenge,
+    code_challenge:        challenge,
+    state,                
   });
 
   const authUrl = `https://${userPoolDomain}/oauth2/authorize?${params.toString()}`;
@@ -106,6 +156,18 @@ async function startCognitoLogin() {
 
 async function exchangeCodeForTokens(code) {
   const { userPoolDomain, clientId, redirectUri } = COGNITO_CONFIG;
+
+  const returnedState = getQueryParam("state");
+  const storedState   = sessionStorage.getItem(PKCE_STATE_KEY);
+  sessionStorage.removeItem(PKCE_STATE_KEY);
+
+  if (!storedState || returnedState !== storedState) {
+    console.error("State mismatch — possible CSRF attack. Aborting token exchange.");
+    clearCodeFromUrl();
+    window.location.href = "admin-login.html";
+    return null;
+  }
+
   const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
   if (!verifier) {
     console.error("No PKCE verifier in sessionStorage");
@@ -114,17 +176,17 @@ async function exchangeCodeForTokens(code) {
 
   const tokenUrl = `https://${userPoolDomain}/oauth2/token`;
   const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    client_id: clientId,
+    grant_type:    "authorization_code",
+    client_id:     clientId,
     code,
-    redirect_uri: redirectUri,
+    redirect_uri:  redirectUri,
     code_verifier: verifier,
   });
 
   const res = await fetch(tokenUrl, {
-    method: "POST",
+    method:  "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
+    body:    body.toString(),
   });
 
   if (!res.ok) {
@@ -139,7 +201,10 @@ async function exchangeCodeForTokens(code) {
   return stored;
 }
 
-// Called from admin-login.html button
+// ============================================================
+// PUBLIC FUNCTIONS — identical signatures to original
+// ============================================================
+
 function redirectToCognitoLogin() {
   console.log("Cognito login button clicked");
   startCognitoLogin().catch((err) => {
@@ -151,22 +216,44 @@ function redirectToCognitoLogin() {
 function buildLogoutUrl() {
   const { userPoolDomain, clientId, logoutRedirectUri } = COGNITO_CONFIG;
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id:  clientId,
     logout_uri: logoutRedirectUri,
   });
   return `https://${userPoolDomain}/logout?${params.toString()}`;
 }
 
-function logoutAdmin() {
-  localStorage.removeItem(TOKEN_KEY);
+async function logoutAdmin() {
+  const refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY)
+    || _memoryTokens?.refreshToken;
+
+  if (refreshToken) {
+    const { userPoolDomain, clientId } = COGNITO_CONFIG;
+    const revokeUrl = `https://${userPoolDomain}/oauth2/revoke`;
+    const body = new URLSearchParams({
+      token:     refreshToken,
+      client_id: clientId,
+    });
+
+    try {
+      await fetch(revokeUrl, {
+        method:  "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body:    body.toString(),
+      });
+    } catch (err) {
+      console.warn("Token revocation request failed:", err);
+    }
+  }
+
+  _memoryTokens = null;
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+  sessionStorage.removeItem(PKCE_STATE_KEY);
+
   window.location.href = buildLogoutUrl();
 }
 
-// ========= MAIN GUARD USED BY DASHBOARD =========
-
 async function requireAdminAuth() {
-  // 0) If Cognito sent an error, stop the loop and go back to login
   const err = getQueryParam("error");
   if (err) {
     const desc = getQueryParam("error_description") || "";
@@ -177,14 +264,12 @@ async function requireAdminAuth() {
     return;
   }
 
-  // 1) valid stored tokens → OK
-  const stored = getStoredTokens();
-  if (stored) {
-    window.jsAdminTokens = stored;
+  const memory = getMemoryTokens();
+  if (memory) {
+    window.jsAdminTokens = memory;
     return;
   }
 
-  // 2) coming back from Cognito with ?code=...
   const code = getQueryParam("code");
   if (code) {
     const newTokens = await exchangeCodeForTokens(code);
@@ -192,16 +277,19 @@ async function requireAdminAuth() {
       window.jsAdminTokens = newTokens;
       return;
     }
-    // if exchange failed, fall through to login
   }
 
-  // 3) no tokens → send to login
+  const refreshed = await silentRefresh();
+  if (refreshed) {
+    window.jsAdminTokens = refreshed;
+    return;
+  }
+
   startCognitoLogin().catch((err) => {
     console.error("Login redirect failed:", err);
   });
 }
 
-  // Make functions available to inline HTML handlers
-  window.redirectToCognitoLogin = redirectToCognitoLogin;
-  window.logoutAdmin = logoutAdmin;
-  window.requireAdminAuth = requireAdminAuth;
+window.redirectToCognitoLogin = redirectToCognitoLogin;
+window.logoutAdmin            = logoutAdmin;
+window.requireAdminAuth       = requireAdminAuth;
