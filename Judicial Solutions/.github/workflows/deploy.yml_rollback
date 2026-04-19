@@ -1,0 +1,158 @@
+name: Deploy Judicial Solutions (Prod - Blue/Green)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # --- 1. SECURITY SCANNING ---
+      - name: Security Scan (Bandit & Secret Check)
+        run: |
+          pip install bandit trufflehog
+          bandit -r . -ll 
+
+      # --- 2. EXISTING TEST SUITE ---
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Run smoke tests
+        run: |
+          pytest pytest/smoke/test_smoke.py -v \
+            --html=pytest/smoke/smoke-report.html \
+            --self-contained-html
+
+      - name: Run sanity tests
+        run: |
+          pytest pytest/sanity/sanity_test.py -v \
+            --html=pytest/sanity/sanity-report.html \
+            --self-contained-html
+
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: pytest/**/*.html
+
+  deploy:
+    needs: test-and-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # --- 3. BACKEND DEPLOY (Lambda Versioning) ---
+      - name: Deploy Lambda with Versioning
+        id: lambda
+        run: |
+          # Zip the contents of the backend folder
+          cd backend && zip -r ../function.zip . && cd ..
+          
+          # Upload and Publish new Version
+          VERSION=$(aws lambda update-function-code \
+            --function-name JudicialBackend \
+            --zip-file fileb://function.zip \
+            --publish \
+            --query 'Version' \
+            --output text)
+          
+          # Update the PROD alias to point to the new Version
+          aws lambda update-alias \
+            --function-name JudicialBackend \
+            --name PROD \
+            --function-version $VERSION
+          
+          echo "NEW_LAMBDA_VER=$VERSION" >> $GITHUB_ENV
+
+      # --- 4. FRONTEND DEPLOY (Logic Fix Included) ---
+      - name: Determine S3 Folders
+        id: s3_vars
+        run: |
+          # Fetch the current OriginPath from CloudFront
+          CURRENT=$(aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --query 'DistributionConfig.Origins.Items[0].OriginPath' --output text)
+          
+          if [ "$CURRENT" == "/blue" ]; then
+            echo "target=green" >> $GITHUB_OUTPUT
+            echo "current=blue" >> $GITHUB_OUTPUT
+          else
+            echo "target=blue" >> $GITHUB_OUTPUT
+            echo "current=green" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Inactive Folder
+        run: |
+          # The / at the end of the destination is CRITICAL
+          aws s3 sync "./Judicial Solutions/" s3://${{ secrets.S3_BUCKET }}/${{ steps.s3_vars.outputs.target }}/ \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "backend/*" \
+            --exclude "docker/*"
+
+      # --- 5. THE ATOMIC FLIP (CloudFront) ---
+      - name: Update CloudFront Origin Path
+        run: |
+          aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} > config.json
+          ETAG=$(jq -r '.ETag' config.json)
+          
+          # Use jq to modify the OriginPath to our new target folder
+          jq ".DistributionConfig.Origins.Items[0].OriginPath = \"/${{ steps.s3_vars.outputs.target }}\"" config.json | jq 'del(.ETag, .Id, .LastModifiedTime)' > final_config.json
+          
+          aws cloudfront update-distribution \
+            --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --if-match $ETAG \
+            --distribution-config file://final_config.json
+
+      - name: Invalidate Cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+
+      # --- 6. HEALTH CHECK & AUTOMATIC ROLLBACK ---
+      - name: Wait for Propagation
+        run: sleep 30
+
+      - name: Smoke Test Live Site
+        id: health_check
+        continue-on-error: true
+        run: |
+          # Hitting your real domain
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://judicialsolutions.in/)
+          if [ $STATUS -ne 200 ]; then exit 1; fi
+
+      - name: Rollback on Failure
+        if: steps.health_check.outcome == 'failure'
+        run: |
+          echo "Health check failed! Reverting to ${{ steps.s3_vars.outputs.current }}..."
+          
+          # Rollback CloudFront to the 'current' (previous) folder
+          aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} > rollback_config.json
+          ETAG=$(jq -r '.ETag' rollback_config.json)
+          jq ".DistributionConfig.Origins.Items[0].OriginPath = \"/${{ steps.s3_vars.outputs.current }}\"" rollback_config.json | jq 'del(.ETag, .Id, .LastModifiedTime)' > final_rollback.json
+          aws cloudfront update-distribution --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --if-match $ETAG --distribution-config file://final_rollback.json
+          
+          # Rollback Lambda Alias to the version before the current one
+          PREV_VER=$(aws lambda list-versions-by-function --function-name JudicialBackend --query 'Versions[-2].Version' --output text)
+          aws lambda update-alias --function-name JudicialBackend --name PROD --function-version $PREV_VER
+          
+          echo "Rollback successful. Site restored to stable version."
+          exit 1
