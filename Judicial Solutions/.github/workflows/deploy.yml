@@ -101,8 +101,8 @@ jobs:
 
       - name: Deploy to Inactive Folder
         run: |
-          # Syncing your frontend folder to the inactive prefix
-          aws s3 sync "Judicial Solutions/" s3://${{ secrets.S3_BUCKET }}/${{ steps.s3_vars.outputs.target }} \
+          # The / at the end of the destination is CRITICAL
+          aws s3 sync "./Judicial Solutions/" s3://${{ secrets.S3_BUCKET }}/${{ steps.s3_vars.outputs.target }}/ \
             --delete \
             --exclude ".git/*" \
             --exclude ".github/*" \
